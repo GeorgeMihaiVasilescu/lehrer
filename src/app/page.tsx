@@ -109,42 +109,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Klaus mascot section */}
-      <section style={{ background: '#fff', borderTop: '1px solid #000', padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        <img
-          src="/robot-mascot.png"
-          alt="Klaus"
-          style={{ width: '200px', maxWidth: '200px', objectFit: 'contain', marginBottom: '1.25rem', mixBlendMode: 'multiply' }}
-        />
-        <p style={{
-          fontFamily: narrow,
-          fontSize: '0.65rem',
-          letterSpacing: '0.2em',
-          color: '#000',
-          fontVariant: 'small-caps',
-          textTransform: 'uppercase',
-          marginBottom: '1.75rem',
-        }}>
-          Klaus — KI-Deutschlehrer
-        </p>
-        <Link
-          href="/register"
-          style={{
-            fontFamily: narrow,
-            fontSize: '0.8rem',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            color: '#fff',
-            background: '#000',
-            textDecoration: 'none',
-            padding: '0.75rem 2.5rem',
-            display: 'inline-block',
-          }}
-        >
-          Jetzt starten →
-        </Link>
-      </section>
-
       {/* Footer */}
       <footer className="hp-footer" style={{ background: '#fff', borderTop: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontFamily: narrow, fontSize: '0.6rem', color: '#aaa', letterSpacing: '0.08em' }}>LEHRER.LIVE — GPT-4O + WHISPER</span>
