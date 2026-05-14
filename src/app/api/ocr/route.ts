@@ -14,20 +14,22 @@ export async function POST(req: NextRequest) {
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
-    messages: [{
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: { url: `data:${mimeType};base64,${base64}` },
-        },
-        {
-          type: 'text',
-          text: 'This is a page from a German language textbook. Extract ALL text, vocabulary, character names, dialogues, and describe what the situations/images show. Be thorough and detailed.',
-        },
-      ],
-    }],
-    max_tokens: 2000,
+    max_tokens: 4096,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are analyzing a page from a German language textbook. Extract ALL content: every word, sentence, dialogue, character name, exercise instruction, and describe every image/situation shown on the page. Be extremely detailed and thorough.',
+      },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: `data:${mimeType};base64,${base64}` },
+          },
+        ],
+      },
+    ],
   })
 
   const text = response.choices[0].message.content ?? ''
