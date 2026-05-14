@@ -1,26 +1,210 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #000;
+  color: #fff;
+  font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+  font-weight: 900;
+  -webkit-font-smoothing: antialiased;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Full-screen background */
+.bg-classroom {
+  position: fixed;
+  inset: 0;
+  background-image: url('/classroom.jpg');
+  background-size: cover;
+  background-position: center;
+  z-index: -1;
+}
+
+.bg-classroom::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.05;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-weight: 900;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  border-radius: 0 !important;
+}
+
+.btn:hover {
+  background: #fff;
+  color: #000;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-filled {
+  background: #fff;
+  color: #000;
+}
+
+.btn-filled:hover {
+  background: #ccc;
+  color: #000;
+}
+
+/* Form inputs */
+.field {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #666;
+  color: #fff;
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-weight: 900;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.65rem 0.75rem;
+  outline: none;
+  border-radius: 0 !important;
+}
+
+.field:focus {
+  border-color: #fff;
+}
+
+.field::placeholder {
+  color: #555;
+  text-transform: uppercase;
+  font-weight: 900;
+}
+
+/* Select */
+select.field {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+/* Panel / card */
+.panel {
+  background: rgba(0, 0, 0, 0.82);
+  border: 2px solid #444;
+  padding: 2rem;
+}
+
+/* Label */
+.label {
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #888;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+/* Divider */
+.divider {
+  border: none;
+  border-top: 1px solid #333;
+  margin: 1.5rem 0;
+}
+
+/* Status bar / stamp */
+.stamp {
+  display: inline-block;
+  border: 2px solid #666;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: #888;
+}
+
+/* Recording pulse — no animation frills */
+@keyframes recording-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.recording-active {
+  animation: recording-pulse 0.8s ease-in-out infinite;
+}
+
+/* Blinking cursor dot */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Table */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  background: #fff;
+  color: #000;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-right: 1px solid #000;
+}
+
+td {
+  border: 1px solid #333;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ccc;
+}
+
+tr:hover td {
+  background: rgba(255,255,255,0.05);
+}
+
+/* Error */
+.error-box {
+  border: 2px solid #ff3333;
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff6666;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
