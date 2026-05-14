@@ -61,22 +61,28 @@ export default function ManifestoPage() {
         }
       `}</style>
 
-      {/* Manifesto text — centered, Permanent Marker, prominent */}
-      <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-        <p
-          className={playfair.className}
-          style={{
-            fontSize: '1.35rem',
-            color: '#4a4a4a',
-            lineHeight: 2.1,
-            margin: 0,
-          }}
-        >
-          Lehrerinnen und Lehrer sollen alles absorbieren.<br />
-          Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.<br />
-          Und trotzdem weiter unterrichten.<br />
-          LEHRER wurde in dieser Realität gebaut.
-        </p>
+      {/* Manifesto text — left aligned, each line its own breath */}
+      <div style={{ marginBottom: '80px' }}>
+        {[
+          'Lehrerinnen und Lehrer sollen alles absorbieren.',
+          'Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.',
+          'Und trotzdem weiter unterrichten.',
+          'LEHRER wurde in dieser Realität gebaut.',
+        ].map((line, i, arr) => (
+          <p
+            key={i}
+            className={playfair.className}
+            style={{
+              fontSize: '1.35rem',
+              color: '#4a4a4a',
+              lineHeight: 1.3,
+              margin: i < arr.length - 1 ? '0 0 1.5rem' : '0',
+              letterSpacing: '0.01em',
+            }}
+          >
+            {line}
+          </p>
+        ))}
       </div>
 
       {/* Illuminated lightbox grid — 48px gap so individual glows don't bleed into each other */}
