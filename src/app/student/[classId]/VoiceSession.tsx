@@ -102,7 +102,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       historyRef.current = [...history, { role: 'assistant' as const, content: reply }]
       await speak(reply)
     } catch {
-      if (stateRef.current !== 'ended') startListening()
+      startListening()
     }
   }
 
@@ -125,7 +125,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
         audio.play().catch(resolve)
       })
     } catch { /* fall through to startListening */ }
-    if (stateRef.current !== 'ended') startListening()
+    startListening()
   }
 
   function startListening() {
@@ -174,7 +174,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
         rafRef.current = requestAnimationFrame(tick)
       }
       rafRef.current = requestAnimationFrame(tick)
-    }).catch(() => { if (stateRef.current !== 'ended') go('idle') })
+    }).catch(() => { const s: CallState = stateRef.current; if (s !== 'ended') go('idle') })
   }
 
   function stopAndProcess() {
@@ -201,12 +201,12 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     try {
       const res = await fetch('/api/transcribe', { method: 'POST', body: form })
       const { text } = await res.json()
-      if (!text?.trim()) { if (stateRef.current !== 'ended') startListening(); return }
+      if (!text?.trim()) { startListening(); return }
       const next = [...historyRef.current, { role: 'user' as const, content: text }]
       historyRef.current = next
       await robotTurn(next)
     } catch {
-      if (stateRef.current !== 'ended') startListening()
+      startListening()
     }
   }
 
