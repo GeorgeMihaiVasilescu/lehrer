@@ -13,16 +13,26 @@ const levelDescriptions: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   const form = await req.formData()
-  const file = form.get('image') as File | null
-  if (!file) return NextResponse.json({ error: 'no image' }, { status: 400 })
+  const files = form.getAll('image') as File[]
+  if (files.length === 0) return NextResponse.json({ error: 'no images' }, { status: 400 })
 
   const levelRaw = (form.get('level') as string | null) ?? ''
   const levelCode = levelRaw.split(' — ')[0].trim()
   const levelDesc = levelDescriptions[levelCode] ?? 'intermediate learners'
 
-  const buffer = await file.arrayBuffer()
-  const base64 = Buffer.from(buffer).toString('base64')
-  const mimeType = file.type || 'image/jpeg'
+  const imageBlocks: OpenAI.Chat.ChatCompletionContentPart[] = await Promise.all(
+    files.map(async (file) => {
+      const buffer = await file.arrayBuffer()
+      const base64 = Buffer.from(buffer).toString('base64')
+      const mimeType = file.type || 'image/jpeg'
+      return {
+        type: 'image_url' as const,
+        image_url: { url: `data:${mimeType};base64,${base64}` },
+      }
+    })
+  )
+
+  const pageWord = files.length === 1 ? 'page' : `${files.length} pages`
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o',
@@ -31,22 +41,18 @@ export async function POST(req: NextRequest) {
       {
         role: 'system',
         content:
-          `You are analyzing a page from a German language textbook designed for ${levelDesc} (${levelCode} level). ` +
-          `Extract ALL content from this page: every word, sentence, dialogue, character name, and exercise instruction. ` +
+          `You are analyzing ${pageWord} from a German language textbook designed for ${levelDesc} (${levelCode} level). ` +
+          `Extract ALL content from every page: every word, sentence, dialogue, character name, and exercise instruction. ` +
           `Also describe every image or illustrated situation shown. Be extremely detailed and thorough. ` +
+          `If there are multiple pages, clearly label each section (e.g. "--- PAGE 1 ---", "--- PAGE 2 ---"). ` +
           `Then add a section called LEVEL NOTES where you: ` +
-          `(1) list vocabulary and structures on this page that are especially important or challenging for ${levelCode} students, ` +
+          `(1) list vocabulary and structures that are especially important or challenging for ${levelCode} students, ` +
           `(2) flag anything that is above ${levelCode} level so the tutor knows to handle it carefully, ` +
           `(3) suggest 2-3 conversation angles Klaus (the AI tutor) can use with a ${levelCode} student based on this material.`,
       },
       {
         role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: `data:${mimeType};base64,${base64}` },
-          },
-        ],
+        content: imageBlocks,
       },
     ],
   })

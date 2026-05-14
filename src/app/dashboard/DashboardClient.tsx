@@ -228,19 +228,22 @@ function ClassDetail({
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'extracting' | 'saving' | 'done' | 'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  async function handleLessonUpload(file: File) {
+  async function handleLessonUpload(files: FileList) {
     setUploadState('uploading')
-    console.log('[lesson] upload started, file:', file.name, file.type, file.size, 'bytes')
+    console.log('[lesson] upload started,', files.length, 'file(s)')
     try {
       const supabase = createClient()
-      const path = `${cls.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-      const { error: storageErr } = await supabase.storage.from('lessons').upload(path, file, { upsert: true })
-      if (storageErr) console.error('[lesson] storage upload ERROR:', storageErr.message)
-      else console.log('[lesson] storage upload OK, path:', path)
+      const ts = Date.now()
+      for (const file of Array.from(files)) {
+        const path = `${cls.id}/${ts}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+        const { error: storageErr } = await supabase.storage.from('lessons').upload(path, file, { upsert: true })
+        if (storageErr) console.error('[lesson] storage upload ERROR:', storageErr.message)
+        else console.log('[lesson] storage upload OK, path:', path)
+      }
 
       setUploadState('extracting')
       const form = new FormData()
-      form.append('image', file)
+      for (const file of Array.from(files)) form.append('image', file)
       form.append('level', cls.level)
       const ocrRes = await fetch('/api/ocr', { method: 'POST', body: form })
       console.log('[lesson] OCR response status:', ocrRes.status)
@@ -386,8 +389,9 @@ function ClassDetail({
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files?.[0]; if (f) { handleLessonUpload(f); e.target.value = '' } }}
+                onChange={e => { const files = e.target.files; if (files?.length) { handleLessonUpload(files); e.target.value = '' } }}
               />
               <button onClick={() => onDelete(cls.id)} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 LÖSCHEN
