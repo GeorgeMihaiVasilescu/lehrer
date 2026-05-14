@@ -287,25 +287,41 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
   return (
     <main style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        .vs-header { border-bottom: 1px solid #000; padding: 0.65rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+        .vs-robot-label { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+        .vs-robot-level { display: inline; }
+        .vs-right { display: flex; align-items: center; gap: 1rem; }
+        .vs-state-label { display: flex; align-items: center; gap: 0.35rem; }
+        .vs-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
+        .vs-robot-img { width: 200px; }
+        @media (max-width: 480px) {
+          .vs-header { padding: 0.5rem 0.75rem; }
+          .vs-robot-level { display: none; }
+          .vs-right { gap: 0.6rem; }
+          .vs-state-label { display: none; }
+          .vs-robot-img { width: 140px !important; }
+          .vs-center { padding: 1.5rem 1rem; }
+        }
+      `}</style>
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #000', padding: '0.65rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <img src="/robot.png" alt="" style={{ width: '32px', objectFit: 'contain' }} />
-          <span style={{ fontFamily: narrow, fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000' }}>
+      <div className="vs-header">
+        <div className="vs-robot-label">
+          <img src="/robot.png" alt="" style={{ width: '28px', objectFit: 'contain', flexShrink: 0 }} />
+          <span style={{ fontFamily: narrow, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {cls.robot_name}
           </span>
-          <span style={{ fontFamily: narrow, fontSize: '0.65rem', color: '#bbb', letterSpacing: '0.06em' }}>
+          <span className="vs-robot-level" style={{ fontFamily: narrow, fontSize: '0.65rem', color: '#bbb', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
             {cls.level.split(' — ')[0]}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <span style={{ fontFamily: narrow, fontSize: '1rem', letterSpacing: '0.08em', color: timeLeft < 120 ? '#c00' : '#000', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="vs-right">
+          <span style={{ fontFamily: narrow, fontSize: '1rem', letterSpacing: '0.08em', color: timeLeft < 120 ? '#c00' : '#000', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             {fmt(timeLeft)}
           </span>
-          <span style={{
-            display: 'flex', alignItems: 'center', gap: '0.35rem',
+          <span className="vs-state-label" style={{
             fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase',
             color: callState === 'listening' ? '#16a34a' : callState === 'speaking' ? '#000' : '#999',
           }}>
@@ -314,7 +330,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           </span>
           <button
             onClick={endCall}
-            style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', background: '#c00', border: '1px solid #c00', color: '#fff', padding: '0.3rem 0.75rem', cursor: 'pointer' }}
+            style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', background: '#c00', border: '1px solid #c00', color: '#fff', padding: '0.3rem 0.6rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             AUFLEGEN
           </button>
@@ -322,11 +338,12 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       </div>
 
       {/* Center */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+      <div className="vs-center">
         <img
           src="/robot.png"
           alt=""
-          style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s' }}
+          className="vs-robot-img"
+          style={{ objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s' }}
         />
         {lastRobotText && (
           <p style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1rem', color: '#333', maxWidth: '32rem', lineHeight: 1.7, letterSpacing: '0.02em' }}>

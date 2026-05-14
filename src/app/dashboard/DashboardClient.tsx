@@ -19,6 +19,28 @@ interface DashboardClientProps {
 
 const narrow = "'Arial Narrow', Arial, sans-serif"
 
+const DASH_STYLES = `
+  .db-body { display: flex; flex: 1; min-height: 0; }
+  .db-sidebar { width: 220px; border-right: 1px solid #000; display: flex; flex-direction: column; background: #fff; flex-shrink: 0; }
+  .db-main { flex: 1; overflow-y: auto; padding: 2rem; min-width: 0; }
+  .db-title-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; }
+  .db-edit-fields { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
+  .db-stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #000; border-left: 1px solid #000; margin-bottom: 2rem; }
+  .db-code-box { border: 1px solid #000; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
+  .db-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .db-nav { padding: 0.65rem 1rem; }
+  @media (max-width: 700px) {
+    .db-body { flex-direction: column; }
+    .db-sidebar { width: 100% !important; border-right: none; border-bottom: 1px solid #000; max-height: 180px; overflow-y: auto; }
+    .db-main { padding: 1rem; }
+    .db-title-row { flex-direction: column; gap: 0.75rem; }
+    .db-edit-fields { flex-direction: column; }
+    .db-stats { grid-template-columns: 1fr !important; }
+    .db-code-box { flex-direction: column; align-items: flex-start !important; gap: 0.75rem; }
+    .db-nav-name { display: none; }
+  }
+`
+
 export default function DashboardClient({ professor, initialClasses }: DashboardClientProps) {
   const router = useRouter()
   const [classes, setClasses] = useState(initialClasses)
@@ -68,17 +90,18 @@ export default function DashboardClient({ professor, initialClasses }: Dashboard
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fff', color: '#000' }}>
+      <style>{DASH_STYLES}</style>
 
       {/* Navbar */}
-      <nav style={{ background: '#fff', borderBottom: '1px solid #000', padding: '0.65rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <nav className="db-nav" style={{ background: '#fff', borderBottom: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
           <img src="/robot.png" alt="" style={{ width: '40px', objectFit: 'contain' }} />
           <span style={{ fontFamily: narrow, fontWeight: 400, fontSize: '0.85rem', letterSpacing: '0.18em', color: '#000', textTransform: 'uppercase' }}>
             LEHRER.LIVE
           </span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <span style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.1em', color: '#999', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span className="db-nav-name" style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.1em', color: '#999', textTransform: 'uppercase' }}>
             {professor.name}
           </span>
           <button
@@ -90,11 +113,11 @@ export default function DashboardClient({ professor, initialClasses }: Dashboard
         </div>
       </nav>
 
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <div className="db-body">
 
         {/* Sidebar */}
-        <aside style={{ width: '220px', borderRight: '1px solid #000', display: 'flex', flexDirection: 'column', background: '#fff' }}>
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <aside className="db-sidebar">
+          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <span style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase' }}>
               KLASSEN
             </span>
@@ -151,9 +174,9 @@ export default function DashboardClient({ professor, initialClasses }: Dashboard
         </aside>
 
         {/* Main content */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+        <main className="db-main">
           {!selectedClass ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '200px' }}>
               <p style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.15em', color: '#ccc', textTransform: 'uppercase' }}>
                 KLASSE AUSWÄHLEN
               </p>
@@ -191,7 +214,6 @@ function ClassDetail({
   const [editLevel, setEditLevel] = useState('')
   const [editPersonality, setEditPersonality] = useState('')
   const [saving, setSaving] = useState(false)
-  const narrow = "'Arial Narrow', Arial, sans-serif"
 
   function copyCode() {
     navigator.clipboard.writeText(cls.code)
@@ -234,13 +256,13 @@ function ClassDetail({
   return (
     <div style={{ maxWidth: '52rem' }}>
 
-      {/* Title */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
-        <div style={{ flex: 1, marginRight: '1rem' }}>
+      {/* Title row */}
+      <div className="db-title-row">
+        <div style={{ flex: 1, marginRight: '1rem', minWidth: 0 }}>
           <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
             KLASSEN-AKTE
           </p>
-          <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: 0 }}>
+          <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: 0, wordBreak: 'break-word' }}>
             {cls.name}
           </h2>
           {!editing ? (
@@ -248,7 +270,7 @@ function ClassDetail({
               {cls.level} — ROBOTER: {cls.robot_name}
             </p>
           ) : (
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+            <div className="db-edit-fields">
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Roboter-Name</label>
                 <input value={editRobotName} onChange={e => setEditRobotName(e.target.value)} style={fieldStyle} />
@@ -271,32 +293,19 @@ function ClassDetail({
         <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
           {!editing ? (
             <>
-              <button
-                onClick={startEdit}
-                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#000', background: 'none', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
-              >
+              <button onClick={startEdit} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#000', background: 'none', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 BEARBEITEN
               </button>
-              <button
-                onClick={() => onDelete(cls.id)}
-                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
-              >
+              <button onClick={() => onDelete(cls.id)} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 LÖSCHEN
               </button>
             </>
           ) : (
             <>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: saving ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: saving ? 0.5 : 1 }}
-              >
+              <button onClick={handleSave} disabled={saving} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: saving ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: saving ? 0.5 : 1 }}>
                 {saving ? 'SPEICHERT...' : 'SPEICHERN'}
               </button>
-              <button
-                onClick={() => setEditing(false)}
-                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
-              >
+              <button onClick={() => setEditing(false)} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 ABBRECHEN
               </button>
             </>
@@ -305,7 +314,7 @@ function ClassDetail({
       </div>
 
       {/* Code */}
-      <div style={{ border: '1px solid #000', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
+      <div className="db-code-box">
         <div>
           <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.12em', color: '#999', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
             ZUGANGSCODE FÜR SCHÜLER
@@ -314,16 +323,13 @@ function ClassDetail({
             {cls.code}
           </p>
         </div>
-        <button
-          onClick={copyCode}
-          style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.12em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.6rem 1.25rem', cursor: 'pointer', textTransform: 'uppercase' }}
-        >
+        <button onClick={copyCode} style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.12em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.6rem 1.25rem', cursor: 'pointer', textTransform: 'uppercase' }}>
           {copied ? 'KOPIERT' : 'KOPIEREN'}
         </button>
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderTop: '1px solid #000', borderLeft: '1px solid #000', marginBottom: '2rem' }}>
+      <div className="db-stats">
         {[
           { label: 'Durchschn. Genauigkeit', value: `${acc}%` },
           { label: 'Gesamtsitzungen', value: String(cls.conversations.length) },
@@ -347,28 +353,30 @@ function ClassDetail({
           </p>
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: narrow }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid #000' }}>
-              {['Schüler', 'Genauigkeit', 'Dauer', 'Fehler', 'Datum'].map((h) => (
-                <th key={h} style={{ textAlign: 'left', padding: '0.4rem 0.75rem', fontSize: '0.6rem', letterSpacing: '0.1em', fontWeight: 400, textTransform: 'uppercase', color: '#999' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...cls.conversations]
-              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-              .map((conv, i) => (
-                <tr key={conv.id} style={{ borderBottom: '1px solid #eee', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                  <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#000', textTransform: 'uppercase' }}>{conv.student_name}</td>
-                  <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: conv.accuracy >= 80 ? '#2a7a2a' : conv.accuracy >= 60 ? '#7a6a00' : '#a00000' }}>{conv.accuracy}%</td>
-                  <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{formatDuration(conv.duration)}</td>
-                  <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{conv.mistakes}</td>
-                  <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#bbb' }}>{new Date(conv.created_at).toLocaleDateString('de-DE')}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <div className="db-table-wrap">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: narrow, minWidth: '480px' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #000' }}>
+                {['Schüler', 'Genauigkeit', 'Dauer', 'Fehler', 'Datum'].map((h) => (
+                  <th key={h} style={{ textAlign: 'left', padding: '0.4rem 0.75rem', fontSize: '0.6rem', letterSpacing: '0.1em', fontWeight: 400, textTransform: 'uppercase', color: '#999' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...cls.conversations]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .map((conv, i) => (
+                  <tr key={conv.id} style={{ borderBottom: '1px solid #eee', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#000', textTransform: 'uppercase' }}>{conv.student_name}</td>
+                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: conv.accuracy >= 80 ? '#2a7a2a' : conv.accuracy >= 60 ? '#7a6a00' : '#a00000' }}>{conv.accuracy}%</td>
+                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{formatDuration(conv.duration)}</td>
+                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{conv.mistakes}</td>
+                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#bbb' }}>{new Date(conv.created_at).toLocaleDateString('de-DE')}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )
