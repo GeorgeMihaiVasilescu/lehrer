@@ -1,10 +1,6 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { Permanent_Marker, Caveat } from 'next/font/google'
+import { Permanent_Marker } from 'next/font/google'
 
 const marker = Permanent_Marker({ subsets: ['latin'], weight: '400' })
-const caveat = Caveat({ subsets: ['latin'], weight: '400' })
 
 const files = [
   '3FC9735D-2021-4A0B-95AE-38B58A9DD230.png',
@@ -27,51 +23,19 @@ const files = [
   '987739C7-B014-47BE-B96C-B6AB18E08F8A%202.png',
 ]
 
-const heights = [
-  158, 174, 148, 167, 161, 152,
-  177, 157, 165, 149, 172, 160,
-  163, 147, 178, 155, 169, 153,
-]
-
 export default function ManifestoPage() {
-  const [selected, setSelected] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (selected === null) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [selected])
-
   return (
-    <main style={{ background: '#1a1a1a', minHeight: '100vh', padding: '72px 5vw 96px' }}>
-      <style>{`
-        .lb {
-          background: #fffef8;
-          padding: 10px;
-          box-shadow: 0 0 18px 5px rgba(255,248,220,0.72);
-          cursor: pointer;
-          transition: box-shadow 0.28s ease, transform 0.28s ease;
-          position: relative;
-        }
-        .lb:hover {
-          box-shadow: 0 0 32px 10px rgba(255,248,220,0.98);
-          transform: scale(1.05);
-          z-index: 5;
-        }
-      `}</style>
+    <main style={{ background: '#fff', minHeight: '100vh', padding: '72px 5vw 88px' }}>
 
       {/* Manifesto text */}
-      <div style={{ marginBottom: '80px', paddingLeft: '40px' }}>
-        <p
-          className={caveat.className}
-          style={{
-            fontSize: '1.4rem',
-            color: '#aaaaaa',
-            lineHeight: 2,
-            margin: 0,
-          }}
-        >
+      <div style={{ maxWidth: '560px', marginBottom: '64px' }}>
+        <p style={{
+          fontFamily: '"Times New Roman", Times, serif',
+          fontSize: '0.95rem',
+          color: '#111111',
+          lineHeight: 2,
+          margin: 0,
+        }}>
           Lehrerinnen und Lehrer sollen alles absorbieren.<br />
           Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.<br />
           Und trotzdem weiter unterrichten.<br />
@@ -79,36 +43,30 @@ export default function ManifestoPage() {
         </p>
       </div>
 
-      {/* Illuminated lightbox grid — 48px gap so individual glows don't bleed into each other */}
+      {/* Clean image grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(6, 1fr)',
-        gap: '48px',
-        marginBottom: '96px',
+        gap: '8px',
+        marginBottom: '80px',
       }}>
         {files.map((f, i) => (
-          <div key={i} className="lb" onClick={() => setSelected(i)}>
-            <img
-              src={`/lehrermanifesto/${f}`}
-              alt=""
-              style={{
-                display: 'block',
-                width: '100%',
-                height: `${heights[i]}px`,
-                objectFit: 'cover',
-              }}
-            />
-          </div>
+          <img
+            key={i}
+            src={`/lehrermanifesto/${f}`}
+            alt=""
+            style={{ display: 'block', width: '100%', height: 'auto' }}
+          />
         ))}
       </div>
 
-      {/* Handwritten bottom right — smaller, less prominent */}
+      {/* Handwritten bottom right */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <p
           className={marker.className}
           style={{
             fontSize: '0.9rem',
-            color: 'rgba(255,255,255,0.4)',
+            color: '#111111',
             transform: 'rotate(-2deg)',
             margin: 0,
           }}
@@ -117,34 +75,6 @@ export default function ManifestoPage() {
         </p>
       </div>
 
-      {/* Fullscreen viewer */}
-      {selected !== null && (
-        <div
-          onClick={() => setSelected(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: '#000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            cursor: 'pointer',
-          }}
-        >
-          <img
-            src={`/lehrermanifesto/${files[selected]}`}
-            alt=""
-            onClick={e => e.stopPropagation()}
-            style={{
-              maxWidth: '85vw',
-              maxHeight: '85vh',
-              objectFit: 'contain',
-              cursor: 'default',
-            }}
-          />
-        </div>
-      )}
     </main>
   )
 }
