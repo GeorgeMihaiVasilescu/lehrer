@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Permanent_Marker } from 'next/font/google'
+import { Permanent_Marker, Playfair_Display } from 'next/font/google'
 
 const marker = Permanent_Marker({ subsets: ['latin'], weight: '400' })
+const playfair = Playfair_Display({ subsets: ['latin'], weight: '400' })
 
 const files = [
   '3FC9735D-2021-4A0B-95AE-38B58A9DD230.png',
@@ -63,10 +64,10 @@ export default function ManifestoPage() {
       {/* Manifesto text — centered, Permanent Marker, prominent */}
       <div style={{ textAlign: 'center', marginBottom: '80px' }}>
         <p
-          className={marker.className}
+          className={playfair.className}
           style={{
             fontSize: '1.35rem',
-            color: '#ffffff',
+            color: '#4a4a4a',
             lineHeight: 2.1,
             margin: 0,
           }}
