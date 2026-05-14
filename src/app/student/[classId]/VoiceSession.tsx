@@ -234,7 +234,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   if (callState === 'ended') {
     return (
       <main style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent' }} />
+        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', mixBlendMode: 'multiply' }} />
         <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase', marginBottom: '0.5rem' }}>SITZUNG BEENDET</p>
         <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.5rem' }}>GUT GEMACHT</h2>
         <p style={{ fontFamily: narrow, fontSize: '0.8rem', color: '#999', marginBottom: '2rem' }}>{studentName}</p>
@@ -251,7 +251,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   if (callState === 'idle') {
     return (
       <main style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
-        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent' }} />
+        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', mixBlendMode: 'multiply' }} />
         <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.4rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.4rem' }}>
           {cls.robot_name}
         </h2>
@@ -271,6 +271,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
             border: '2px solid #000',
             padding: '1.25rem 5rem',
             cursor: 'pointer',
+            outline: 'none',
           }}
         >
           ANRUFEN
@@ -308,7 +309,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       {/* Header */}
       <div className="vs-header">
         <div className="vs-robot-label">
-          <img src="/robot-mascot.png" alt="" style={{ width: '28px', objectFit: 'contain', flexShrink: 0, background: 'transparent' }} />
+          <img src="/robot-mascot.png" alt="" style={{ width: '28px', objectFit: 'contain', flexShrink: 0, background: 'transparent', mixBlendMode: 'multiply' }} />
           <span style={{ fontFamily: narrow, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {cls.robot_name}
           </span>
@@ -343,7 +344,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           src="/robot-mascot.png"
           alt=""
           className="vs-robot-img"
-          style={{ objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s', background: 'transparent' }}
+          style={{ objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s', background: 'transparent', mixBlendMode: 'multiply' }}
         />
         {lastRobotText && (
           <p style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1rem', color: '#333', maxWidth: '32rem', lineHeight: 1.7, letterSpacing: '0.02em' }}>
