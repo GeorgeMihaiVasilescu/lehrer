@@ -46,7 +46,9 @@ If this is a system/greeting message with no German to evaluate, set accuracy to
 export async function POST(req: NextRequest) {
   const { robotName, personality, level, messages, isSystem, lessonContext } = await req.json()
 
+  console.log('[chat] lessonContext received:', lessonContext ? `"${String(lessonContext).slice(0, 80)}..." (${String(lessonContext).length} chars)` : 'NONE')
   const systemPrompt = buildSystemPrompt(robotName, personality, level, lessonContext || undefined)
+  console.log('[chat] system prompt length:', systemPrompt.length, 'chars — includes lesson:', systemPrompt.includes('LESSON MATERIAL'))
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

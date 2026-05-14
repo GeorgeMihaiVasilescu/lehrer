@@ -135,6 +135,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       ? [...history, { role: 'user' as const, content: overrideContent }]
       : history
 
+    dbg(`[lesson] cls.lesson_context=${cls.lesson_context ? '"' + cls.lesson_context.slice(0, 40) + '..."' : 'NULL'}`)
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',

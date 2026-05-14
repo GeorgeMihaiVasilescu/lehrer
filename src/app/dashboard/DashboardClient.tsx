@@ -229,24 +229,39 @@ function ClassDetail({
 
   async function handleLessonUpload(file: File) {
     setUploadState('uploading')
+    console.log('[lesson] upload started, file:', file.name, file.type, file.size, 'bytes')
     try {
       const supabase = createClient()
       const path = `${cls.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-      await supabase.storage.from('lessons').upload(path, file, { upsert: true })
+      const { error: storageErr } = await supabase.storage.from('lessons').upload(path, file, { upsert: true })
+      if (storageErr) console.error('[lesson] storage upload ERROR:', storageErr.message)
+      else console.log('[lesson] storage upload OK, path:', path)
 
       setUploadState('extracting')
       const form = new FormData()
       form.append('image', file)
       const ocrRes = await fetch('/api/ocr', { method: 'POST', body: form })
-      if (!ocrRes.ok) throw new Error('OCR failed')
+      console.log('[lesson] OCR response status:', ocrRes.status)
+      if (!ocrRes.ok) {
+        const body = await ocrRes.text()
+        console.error('[lesson] OCR failed, body:', body)
+        throw new Error('OCR failed')
+      }
       const { text } = await ocrRes.json()
+      console.log('[lesson] OCR extracted text (' + text.length + ' chars):', text.slice(0, 200))
 
       setUploadState('saving')
-      await supabase.from('classes').update({ lesson_context: text }).eq('id', cls.id)
+      const { error: dbErr } = await supabase.from('classes').update({ lesson_context: text }).eq('id', cls.id)
+      if (dbErr) {
+        console.error('[lesson] DB update ERROR:', dbErr.message, 'code:', dbErr.code)
+        throw new Error('DB update failed')
+      }
+      console.log('[lesson] DB update OK — lesson_context saved for class', cls.id)
       setLessonContext(text)
       setUploadState('done')
       setTimeout(() => setUploadState('idle'), 3000)
-    } catch {
+    } catch (e) {
+      console.error('[lesson] handleLessonUpload EXCEPTION:', e)
       setUploadState('error')
       setTimeout(() => setUploadState('idle'), 3000)
     }
