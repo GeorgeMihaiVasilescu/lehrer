@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import CreateClassModal from '@/components/CreateClassModal'
@@ -223,6 +223,44 @@ function ClassDetail({
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [convErrors, setConvErrors] = useState<Record<string, ConversationError[]>>({})
+  const [lessonContext, setLessonContext] = useState(cls.lesson_context ?? '')
+  const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'extracting' | 'saving' | 'done' | 'error'>('idle')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  async function handleLessonUpload(file: File) {
+    setUploadState('uploading')
+    try {
+      const supabase = createClient()
+      const path = `${cls.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      await supabase.storage.from('lessons').upload(path, file, { upsert: true })
+
+      setUploadState('extracting')
+      const form = new FormData()
+      form.append('image', file)
+      const ocrRes = await fetch('/api/ocr', { method: 'POST', body: form })
+      if (!ocrRes.ok) throw new Error('OCR failed')
+      const { text } = await ocrRes.json()
+
+      setUploadState('saving')
+      await supabase.from('classes').update({ lesson_context: text }).eq('id', cls.id)
+      setLessonContext(text)
+      setUploadState('done')
+      setTimeout(() => setUploadState('idle'), 3000)
+    } catch {
+      setUploadState('error')
+      setTimeout(() => setUploadState('idle'), 3000)
+    }
+  }
+
+  const uploadLabel: Record<string, string> = {
+    idle: 'LEKTION HOCHLADEN',
+    uploading: 'WIRD HOCHGELADEN...',
+    extracting: 'TEXT WIRD EXTRAHIERT...',
+    saving: 'WIRD GESPEICHERT...',
+    done: 'GESPEICHERT ✓',
+    error: 'FEHLER',
+  }
+  const uploadBusy = uploadState !== 'idle' && uploadState !== 'done' && uploadState !== 'error'
 
   useEffect(() => {
     const ids = cls.conversations.map(c => c.id)
@@ -320,6 +358,20 @@ function ClassDetail({
               <button onClick={startEdit} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#000', background: 'none', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 BEARBEITEN
               </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadBusy}
+                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: uploadState === 'done' ? '#2a7a2a' : uploadState === 'error' ? '#a00000' : '#000', background: 'none', border: `1px solid ${uploadState === 'done' ? '#2a7a2a' : uploadState === 'error' ? '#a00000' : '#000'}`, padding: '0.3rem 0.6rem', cursor: uploadBusy ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: uploadBusy ? 0.6 : 1, whiteSpace: 'nowrap' }}
+              >
+                {uploadLabel[uploadState]}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) { handleLessonUpload(f); e.target.value = '' } }}
+              />
               <button onClick={() => onDelete(cls.id)} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 LÖSCHEN
               </button>
@@ -350,6 +402,22 @@ function ClassDetail({
         <button onClick={copyCode} style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.12em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.6rem 1.25rem', cursor: 'pointer', textTransform: 'uppercase' }}>
           {copied ? 'KOPIERT' : 'KOPIEREN'}
         </button>
+      </div>
+
+      {/* Lesson context */}
+      <div style={{ border: '1px solid #eee', padding: '0.75rem 1rem', marginBottom: '2rem' }}>
+        <p style={{ fontFamily: narrow, fontSize: '0.55rem', letterSpacing: '0.12em', color: '#999', textTransform: 'uppercase', margin: '0 0 0.35rem' }}>
+          AKTUELLE LEKTION
+        </p>
+        {lessonContext ? (
+          <p style={{ fontFamily: narrow, fontSize: '0.78rem', color: '#333', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '5rem', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }}>
+            {lessonContext}
+          </p>
+        ) : (
+          <p style={{ fontFamily: narrow, fontSize: '0.72rem', color: '#bbb', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Keine Lektion hochgeladen
+          </p>
+        )}
       </div>
 
       {/* Stats */}

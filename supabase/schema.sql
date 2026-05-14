@@ -18,6 +18,7 @@ create table if not exists classes (
   robot_name    text not null default 'Klaus',
   personality   text not null default 'Friendly & encouraging',
   code          text not null unique,
+  lesson_context text,
   created_at    timestamptz not null default now()
 );
 

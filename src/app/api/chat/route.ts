@@ -3,7 +3,7 @@ import OpenAI from 'openai'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-function buildSystemPrompt(robotName: string, personality: string, level: string) {
+function buildSystemPrompt(robotName: string, personality: string, level: string, lessonContext?: string) {
   const levelMap: Record<string, string> = {
     A1: 'absolute beginner — use only the simplest words and very short sentences',
     A2: 'elementary — use simple, common vocabulary and basic grammar',
@@ -40,13 +40,13 @@ Return a JSON object with these fields:
 }
 
 If there are no mistakes, set "errors" to [].
-If this is a system/greeting message with no German to evaluate, set accuracy to 100, mistakes to 0, and errors to [].`
+If this is a system/greeting message with no German to evaluate, set accuracy to 100, mistakes to 0, and errors to [].${lessonContext ? `\n\nTODAY'S LESSON MATERIAL (steer the conversation toward this topic and vocabulary):\n${lessonContext}` : ''}`
 }
 
 export async function POST(req: NextRequest) {
-  const { robotName, personality, level, messages, isSystem } = await req.json()
+  const { robotName, personality, level, messages, isSystem, lessonContext } = await req.json()
 
-  const systemPrompt = buildSystemPrompt(robotName, personality, level)
+  const systemPrompt = buildSystemPrompt(robotName, personality, level, lessonContext || undefined)
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

@@ -139,7 +139,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classId: cls.id, robotName: cls.robot_name, personality: cls.personality, level: cls.level, messages, isSystem }),
+        body: JSON.stringify({ classId: cls.id, robotName: cls.robot_name, personality: cls.personality, level: cls.level, messages, isSystem, lessonContext: cls.lesson_context ?? undefined }),
       })
       const data = await res.json()
       const reply: string = data.reply ?? ''

@@ -13,6 +13,7 @@ export interface Class {
   robot_name: string
   personality: string
   code: string
+  lesson_context: string | null
   created_at: string
 }
 
