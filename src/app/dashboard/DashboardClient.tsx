@@ -225,8 +225,19 @@ function ClassDetail({
   const [convErrors, setConvErrors] = useState<Record<string, ConversationError[]>>({})
   const [lessonContext, setLessonContext] = useState(cls.lesson_context ?? '')
   const [lessonExpanded, setLessonExpanded] = useState(false)
+  const [instructionsText, setInstructionsText] = useState('')
+  const [savingText, setSavingText] = useState(false)
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'extracting' | 'saving' | 'done' | 'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  async function handleSaveText() {
+    if (!instructionsText.trim()) return
+    setSavingText(true)
+    const supabase = createClient()
+    const { error } = await supabase.from('classes').update({ lesson_context: instructionsText.trim() }).eq('id', cls.id)
+    if (!error) { setLessonContext(instructionsText.trim()); setInstructionsText('') }
+    setSavingText(false)
+  }
 
   async function handleLessonUpload(files: FileList) {
     setUploadState('uploading')
@@ -256,13 +267,15 @@ function ClassDetail({
       console.log('[lesson] OCR extracted text (' + text.length + ' chars):', text.slice(0, 200))
 
       setUploadState('saving')
-      const { error: dbErr } = await supabase.from('classes').update({ lesson_context: text }).eq('id', cls.id)
+      const combined = [instructionsText.trim(), text].filter(Boolean).join('\n\n')
+      const { error: dbErr } = await supabase.from('classes').update({ lesson_context: combined }).eq('id', cls.id)
       if (dbErr) {
         console.error('[lesson] DB update ERROR:', dbErr.message, 'code:', dbErr.code)
         throw new Error('DB update failed')
       }
       console.log('[lesson] DB update OK — lesson_context saved for class', cls.id)
-      setLessonContext(text)
+      setLessonContext(combined)
+      setInstructionsText('')
       setUploadState('done')
       setTimeout(() => setUploadState('idle'), 3000)
     } catch (e) {
@@ -378,21 +391,6 @@ function ClassDetail({
               <button onClick={startEdit} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#000', background: 'none', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 BEARBEITEN
               </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadBusy}
-                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: uploadState === 'done' ? '#2a7a2a' : uploadState === 'error' ? '#a00000' : '#000', background: 'none', border: `1px solid ${uploadState === 'done' ? '#2a7a2a' : uploadState === 'error' ? '#a00000' : '#000'}`, padding: '0.3rem 0.6rem', cursor: uploadBusy ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: uploadBusy ? 0.6 : 1, whiteSpace: 'nowrap' }}
-              >
-                {uploadLabel[uploadState]}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                style={{ display: 'none' }}
-                onChange={e => { const files = e.target.files; if (files?.length) { handleLessonUpload(files); e.target.value = '' } }}
-              />
               <button onClick={() => onDelete(cls.id)} style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}>
                 LÖSCHEN
               </button>
@@ -425,14 +423,52 @@ function ClassDetail({
         </button>
       </div>
 
-      {/* Lesson context */}
+      {/* Lesson input */}
       <div style={{ border: '1px solid #eee', padding: '0.75rem 1rem', marginBottom: '2rem' }}>
-        <p style={{ fontFamily: narrow, fontSize: '0.55rem', letterSpacing: '0.12em', color: '#999', textTransform: 'uppercase', margin: '0 0 0.35rem' }}>
-          AKTUELLE LEKTION
-        </p>
-        {lessonContext ? (
-          <div>
-            <p style={{ fontFamily: narrow, fontSize: '0.78rem', color: '#333', margin: '0 0 0.3rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+        <label style={{ display: 'block', fontFamily: narrow, fontSize: '0.55rem', letterSpacing: '0.12em', color: '#999', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+          Instrucțiuni pentru Klaus (ce să discute azi)
+        </label>
+        <textarea
+          value={instructionsText}
+          onChange={e => setInstructionsText(e.target.value)}
+          placeholder="Ex: Discutați despre rutina de dimineață. Vocabular: sich waschen, frühstücken, aufstehen..."
+          rows={3}
+          style={{ width: '100%', fontFamily: narrow, fontSize: '0.78rem', color: '#000', border: '1px solid #ddd', padding: '0.5rem 0.6rem', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }}
+        />
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center' }}>
+          <button
+            onClick={handleSaveText}
+            disabled={savingText || !instructionsText.trim()}
+            style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.3rem 0.75rem', cursor: savingText || !instructionsText.trim() ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: savingText || !instructionsText.trim() ? 0.4 : 1 }}
+          >
+            {savingText ? 'SALVEAZĂ...' : 'SALVEAZĂ'}
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadBusy}
+            style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: uploadState === 'done' ? '#2a7a2a' : uploadState === 'error' ? '#a00000' : '#555', background: 'none', border: `1px solid ${uploadState === 'done' ? '#2a7a2a' : uploadState === 'error' ? '#a00000' : '#ccc'}`, padding: '0.3rem 0.75rem', cursor: uploadBusy ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: uploadBusy ? 0.6 : 1, whiteSpace: 'nowrap' }}
+          >
+            {uploadLabel[uploadState]}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={e => { const files = e.target.files; if (files?.length) { handleLessonUpload(files); e.target.value = '' } }}
+          />
+          {lessonContext && (
+            <span style={{ fontFamily: narrow, fontSize: '0.55rem', color: '#bbb', letterSpacing: '0.06em', marginLeft: 'auto' }}>
+              context salvat
+            </span>
+          )}
+        </div>
+
+        {/* Saved context preview */}
+        {lessonContext && (
+          <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid #f0f0f0' }}>
+            <p style={{ fontFamily: narrow, fontSize: '0.72rem', color: '#333', margin: '0 0 0.3rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
               {lessonExpanded || lessonContext.length <= 150
                 ? lessonContext
                 : lessonContext.slice(0, 150) + '...'}
@@ -446,10 +482,6 @@ function ClassDetail({
               </button>
             )}
           </div>
-        ) : (
-          <p style={{ fontFamily: narrow, fontSize: '0.72rem', color: '#bbb', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Keine Lektion hochgeladen
-          </p>
         )}
       </div>
 
