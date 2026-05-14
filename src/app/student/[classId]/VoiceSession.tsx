@@ -99,17 +99,20 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     // Pre-create audio element during user gesture — required for iOS autoplay policy
     initAudio()
 
-    // Create the conversation record now so we have an ID for real-time error saves
-    dbg('[db] inserting conversation row...')
+    // Generate UUID client-side so we never need a SELECT-after-insert
+    // (the SELECT would hit the professor-only read policy and return null for anon users)
+    const convId = crypto.randomUUID()
+    dbg(`[db] inserting conversation row id=${convId}`)
     const supabase = createClient()
-    const { data: convRow, error: convErr } = await supabase
+    const { error: convErr } = await supabase
       .from('conversations')
-      .insert({ class_id: cls.id, student_name: studentName, duration: 0, accuracy: 0, mistakes: 0 })
-      .select('id')
-      .single()
-    if (convErr) dbg(`[db] conversation insert ERROR: ${convErr.message} code=${convErr.code}`)
-    convIdRef.current = convRow?.id ?? null
-    dbg(`[db] conversation_id=${convIdRef.current ?? 'NULL'}`)
+      .insert({ id: convId, class_id: cls.id, student_name: studentName, duration: 0, accuracy: 0, mistakes: 0 })
+    if (convErr) {
+      dbg(`[db] conversation insert ERROR: ${convErr.message} code=${convErr.code}`)
+    } else {
+      convIdRef.current = convId
+      dbg(`[db] conversation_id=${convId} ✓`)
+    }
 
     startTimeRef.current = Date.now()
     timerRef.current = setInterval(() => {

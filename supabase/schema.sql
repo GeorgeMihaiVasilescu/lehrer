@@ -65,12 +65,12 @@ create policy "classes_professor_all" on classes
 create policy "classes_public_read" on classes
   for select using (true);
 
--- Conversations: professor of that class can read; anyone can insert
+-- Conversations: professor of that class can read; anyone (incl. anon) can insert or update
 create policy "conversations_insert" on conversations
-  for insert with check (true);
+  for insert to anon, authenticated with check (true);
 
 create policy "conversations_update" on conversations
-  for update using (true) with check (true);
+  for update to anon, authenticated using (true) with check (true);
 
 create policy "conversations_professor_read" on conversations
   for select using (
