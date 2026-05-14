@@ -19,102 +19,93 @@ const imgs = [
   'DE6CF1EB-72E9-42AE-8771-39E2692F0F2F.png',
 ].map(f => `/lehrermanifesto/${f}`)
 
-const cover: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' }
+const serif = 'Georgia, "Times New Roman", serif'
+
+const screen: React.CSSProperties = {
+  minHeight: '100vh',
+  background: '#000',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}
 
 export default function ManifestoPage() {
   return (
-    <main style={{ background: '#fff', color: '#000' }}>
+    <main style={{ background: '#000' }}>
 
-      {/* 1 — full width */}
-      <div style={{ height: '85vh' }}>
-        <img src={imgs[0]} alt="" style={cover} />
+      {/* Opening text screen */}
+      <div style={{ ...screen, padding: '8vw 12vw' }}>
+        <div style={{ maxWidth: '820px', width: '100%' }}>
+          <p style={{
+            fontFamily: serif,
+            fontSize: 'clamp(1.5rem, 3vw, 2.6rem)',
+            fontWeight: 400,
+            color: '#fff',
+            lineHeight: 1.45,
+            margin: '0 0 2.5rem',
+          }}>
+            Lehrerinnen und Lehrer sollen alles absorbieren.
+          </p>
+          <p style={{
+            fontFamily: serif,
+            fontSize: 'clamp(1.5rem, 3vw, 2.6rem)',
+            fontWeight: 400,
+            color: '#fff',
+            lineHeight: 1.45,
+            margin: '0 0 2.5rem',
+          }}>
+            Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.
+          </p>
+          <p style={{
+            fontFamily: serif,
+            fontSize: 'clamp(1.5rem, 3vw, 2.6rem)',
+            fontWeight: 400,
+            color: '#fff',
+            lineHeight: 1.45,
+            margin: '0 0 2.5rem',
+          }}>
+            Und trotzdem weiter unterrichten.
+          </p>
+          <p style={{
+            fontFamily: serif,
+            fontSize: 'clamp(1.5rem, 3vw, 2.6rem)',
+            fontWeight: 400,
+            color: '#fff',
+            lineHeight: 1.45,
+            margin: 0,
+          }}>
+            LEHRER wurde in dieser Realität gebaut.
+          </p>
+        </div>
       </div>
 
-      {/* 2 — two equal */}
-      <div style={{ display: 'flex', height: '60vh' }}>
-        <img src={imgs[1]} alt="" style={{ ...cover, width: '50%' }} />
-        <img src={imgs[2]} alt="" style={{ ...cover, width: '50%' }} />
-      </div>
+      {/* One image per screen */}
+      {imgs.map((src, i) => (
+        <div key={i} style={screen}>
+          <img
+            src={src}
+            alt=""
+            style={{
+              display: 'block',
+              maxWidth: '80%',
+              maxHeight: '80vh',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
+      ))}
 
-      {/* 3 — wide + narrow */}
-      <div style={{ display: 'flex', height: '55vh' }}>
-        <img src={imgs[3]} alt="" style={{ ...cover, width: '66.666%' }} />
-        <img src={imgs[4]} alt="" style={{ ...cover, width: '33.333%' }} />
-      </div>
-
-      {/* 4 — full width */}
-      <div style={{ height: '75vh' }}>
-        <img src={imgs[5]} alt="" style={cover} />
-      </div>
-
-      {/* 5 — three equal */}
-      <div style={{ display: 'flex', height: '50vh' }}>
-        <img src={imgs[6]} alt="" style={{ ...cover, width: '33.333%' }} />
-        <img src={imgs[7]} alt="" style={{ ...cover, width: '33.333%' }} />
-        <img src={imgs[8]} alt="" style={{ ...cover, width: '33.333%' }} />
-      </div>
-
-      {/* 6 — narrow + wide */}
-      <div style={{ display: 'flex', height: '55vh' }}>
-        <img src={imgs[9]}  alt="" style={{ ...cover, width: '33.333%' }} />
-        <img src={imgs[10]} alt="" style={{ ...cover, width: '66.666%' }} />
-      </div>
-
-      {/* 7 — two equal */}
-      <div style={{ display: 'flex', height: '60vh' }}>
-        <img src={imgs[11]} alt="" style={{ ...cover, width: '50%' }} />
-        <img src={imgs[12]} alt="" style={{ ...cover, width: '50%' }} />
-      </div>
-
-      {/* 8 — full width */}
-      <div style={{ height: '80vh' }}>
-        <img src={imgs[13]} alt="" style={cover} />
-      </div>
-
-      {/* 9 — wide + narrow */}
-      <div style={{ display: 'flex', height: '55vh' }}>
-        <img src={imgs[14]} alt="" style={{ ...cover, width: '66.666%' }} />
-        <img src={imgs[15]} alt="" style={{ ...cover, width: '33.333%' }} />
-      </div>
-
-      {/* 10 — two equal */}
-      <div style={{ display: 'flex', height: '60vh' }}>
-        <img src={imgs[16]} alt="" style={{ ...cover, width: '50%' }} />
-        <img src={imgs[17]} alt="" style={{ ...cover, width: '50%' }} />
-      </div>
-
-      {/* Text */}
-      <div style={{ padding: '10vw 8vw 12vw', maxWidth: '900px' }}>
-        <p style={{
-          fontFamily: 'Georgia, "Times New Roman", serif',
-          fontSize: 'clamp(1.6rem, 3.5vw, 3rem)',
+      {/* Final screen */}
+      <div style={screen}>
+        <span style={{
+          fontFamily: serif,
+          fontSize: '0.85rem',
+          letterSpacing: '0.1em',
+          color: '#fff',
           fontWeight: 400,
-          lineHeight: 1.35,
-          color: '#000',
-          margin: '0 0 2rem',
         }}>
-          Lehrerinnen und Lehrer sollen alles absorbieren. Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.
-        </p>
-        <p style={{
-          fontFamily: 'Georgia, "Times New Roman", serif',
-          fontSize: 'clamp(1.6rem, 3.5vw, 3rem)',
-          fontWeight: 400,
-          lineHeight: 1.35,
-          color: '#000',
-          margin: '0 0 2rem',
-        }}>
-          Und trotzdem weiter unterrichten.
-        </p>
-        <p style={{
-          fontFamily: 'Georgia, "Times New Roman", serif',
-          fontSize: 'clamp(1.6rem, 3.5vw, 3rem)',
-          fontWeight: 400,
-          lineHeight: 1.35,
-          color: '#000',
-          margin: 0,
-        }}>
-          LEHRER wurde in dieser Realität gebaut.
-        </p>
+          lehrer.live
+        </span>
       </div>
 
     </main>
