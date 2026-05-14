@@ -159,7 +159,7 @@ export default function DashboardClient({ professor, initialClasses }: Dashboard
               </p>
             </div>
           ) : (
-            <ClassDetail cls={selectedClass} avgAccuracy={avgAccuracy} onDelete={handleDeleteClass} />
+            <ClassDetail cls={selectedClass} avgAccuracy={avgAccuracy} onDelete={handleDeleteClass} onUpdated={refresh} />
           )}
         </main>
       </div>
@@ -171,16 +171,26 @@ export default function DashboardClient({ professor, initialClasses }: Dashboard
   )
 }
 
+const LEVELS = ['A1 — Beginner', 'A2 — Elementary', 'B1 — Intermediate', 'B2 — Upper Intermediate', 'C1 — Advanced']
+const PERSONALITIES = ['Friendly & encouraging', 'Strict & precise', 'Playful & humorous', 'Socratic (asks questions back)']
+
 function ClassDetail({
   cls,
   avgAccuracy,
   onDelete,
+  onUpdated,
 }: {
   cls: ClassWithConversations
   avgAccuracy: (c: Conversation[]) => number
   onDelete: (id: string) => void
+  onUpdated: () => void
 }) {
   const [copied, setCopied] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editRobotName, setEditRobotName] = useState('')
+  const [editLevel, setEditLevel] = useState('')
+  const [editPersonality, setEditPersonality] = useState('')
+  const [saving, setSaving] = useState(false)
   const narrow = "'Arial Narrow', Arial, sans-serif"
 
   function copyCode() {
@@ -189,31 +199,109 @@ function ClassDetail({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  function startEdit() {
+    setEditRobotName(cls.robot_name)
+    setEditLevel(cls.level)
+    setEditPersonality(cls.personality)
+    setEditing(true)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const supabase = createClient()
+    await supabase.from('classes').update({
+      robot_name: editRobotName,
+      level: editLevel,
+      personality: editPersonality,
+    }).eq('id', cls.id)
+    setSaving(false)
+    setEditing(false)
+    onUpdated()
+  }
+
   const acc = avgAccuracy(cls.conversations)
   const totalTime = cls.conversations.reduce((s, c) => s + c.duration, 0)
+
+  const fieldStyle: React.CSSProperties = {
+    width: '100%', border: '1px solid #ccc', background: '#fff', color: '#000',
+    fontFamily: narrow, fontSize: '0.8rem', padding: '0.4rem 0.6rem', outline: 'none', borderRadius: 0,
+  }
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontFamily: narrow, fontSize: '0.55rem', letterSpacing: '0.12em',
+    textTransform: 'uppercase', color: '#999', marginBottom: '0.25rem',
+  }
 
   return (
     <div style={{ maxWidth: '52rem' }}>
 
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
-        <div>
+        <div style={{ flex: 1, marginRight: '1rem' }}>
           <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
             KLASSEN-AKTE
           </p>
           <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: 0 }}>
             {cls.name}
           </h2>
-          <p style={{ fontFamily: narrow, fontSize: '0.7rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.25rem' }}>
-            {cls.level} — ROBOTER: {cls.robot_name}
-          </p>
+          {!editing ? (
+            <p style={{ fontFamily: narrow, fontSize: '0.7rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '0.25rem' }}>
+              {cls.level} — ROBOTER: {cls.robot_name}
+            </p>
+          ) : (
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Roboter-Name</label>
+                <input value={editRobotName} onChange={e => setEditRobotName(e.target.value)} style={fieldStyle} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Sprachniveau</label>
+                <select value={editLevel} onChange={e => setEditLevel(e.target.value)} style={{ ...fieldStyle, cursor: 'pointer' }}>
+                  {LEVELS.map(l => <option key={l}>{l}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Persönlichkeit</label>
+                <select value={editPersonality} onChange={e => setEditPersonality(e.target.value)} style={{ ...fieldStyle, cursor: 'pointer' }}>
+                  {PERSONALITIES.map(p => <option key={p}>{p}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
-        <button
-          onClick={() => onDelete(cls.id)}
-          style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
-        >
-          LÖSCHEN
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+          {!editing ? (
+            <>
+              <button
+                onClick={startEdit}
+                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#000', background: 'none', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
+              >
+                BEARBEITEN
+              </button>
+              <button
+                onClick={() => onDelete(cls.id)}
+                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
+              >
+                LÖSCHEN
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.3rem 0.6rem', cursor: saving ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: saving ? 0.5 : 1 }}
+              >
+                {saving ? 'SPEICHERT...' : 'SPEICHERN'}
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.1em', color: '#999', background: 'none', border: '1px solid #ccc', padding: '0.3rem 0.6rem', cursor: 'pointer', textTransform: 'uppercase' }}
+              >
+                ABBRECHEN
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Code */}
