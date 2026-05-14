@@ -240,6 +240,7 @@ function ClassDetail({
       setUploadState('extracting')
       const form = new FormData()
       form.append('image', file)
+      form.append('level', cls.level)
       const ocrRes = await fetch('/api/ocr', { method: 'POST', body: form })
       console.log('[lesson] OCR response status:', ocrRes.status)
       if (!ocrRes.ok) {
