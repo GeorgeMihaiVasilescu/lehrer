@@ -102,7 +102,7 @@ export default function DashboardClient({ professor, initialClasses }: Dashboard
       {/* Navbar */}
       <nav className="db-nav" style={{ background: '#fff', borderBottom: '1px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none' }}>
-          <img src="/robot.png" alt="" style={{ width: '40px', objectFit: 'contain' }} />
+          <img src="/robot-mascot.png" alt="" style={{ maxHeight: '40px', objectFit: 'contain' }} />
           <span style={{ fontFamily: narrow, fontWeight: 400, fontSize: '0.85rem', letterSpacing: '0.18em', color: '#000', textTransform: 'uppercase' }}>
             LEHRER.LIVE
           </span>
