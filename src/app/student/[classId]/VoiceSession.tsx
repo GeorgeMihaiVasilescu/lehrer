@@ -30,8 +30,10 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   const mistakesRef = useRef(0)
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  // Separate contexts: ttsCtx for playback (created on user gesture), audioCtx for mic analysis
+  const ttsCtxRef = useRef<AudioContext | null>(null)
+  const ttsSourceRef = useRef<AudioBufferSourceNode | null>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -49,11 +51,37 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
   function teardown() {
     timerRef.current && clearInterval(timerRef.current)
-    audioRef.current?.pause()
+    try { ttsSourceRef.current?.stop() } catch {}
     rafRef.current && cancelAnimationFrame(rafRef.current)
     silenceTimerRef.current && clearTimeout(silenceTimerRef.current)
     streamRef.current?.getTracks().forEach(t => t.stop())
     audioCtxRef.current?.close()
+    ttsCtxRef.current?.close()
+  }
+
+  // Must be called directly from a user gesture to unlock iOS/Android audio
+  async function unlockTtsContext() {
+    const ctx = new AudioContext()
+    ttsCtxRef.current = ctx
+    if (ctx.state === 'suspended') await ctx.resume()
+    // Play a silent 1-sample buffer — this is the iOS unlock gesture
+    const silent = ctx.createBuffer(1, 1, 22050)
+    const src = ctx.createBufferSource()
+    src.buffer = silent
+    src.connect(ctx.destination)
+    src.start(0)
+  }
+
+  // Manual re-unlock for when the app returns from background
+  async function handleSpeakerTap() {
+    const ctx = ttsCtxRef.current
+    if (!ctx) return
+    if (ctx.state === 'suspended') await ctx.resume()
+    const silent = ctx.createBuffer(1, 1, 22050)
+    const src = ctx.createBufferSource()
+    src.buffer = silent
+    src.connect(ctx.destination)
+    src.start(0)
   }
 
   async function startCall() {
@@ -64,6 +92,9 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       alert('Mikrofon-Berechtigung erforderlich.')
       return
     }
+
+    // Unlock audio context synchronously within the user gesture
+    await unlockTtsContext()
 
     startTimeRef.current = Date.now()
     timerRef.current = setInterval(() => {
@@ -115,16 +146,20 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       })
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const audio = new Audio(url)
-      audioRef.current = audio
+      const arrayBuffer = await res.arrayBuffer()
+      const ctx = ttsCtxRef.current!
+      // Resume if iOS suspended it (e.g. phone call, background)
+      if (ctx.state === 'suspended') await ctx.resume()
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer)
       await new Promise<void>(resolve => {
-        audio.onended = () => { URL.revokeObjectURL(url); resolve() }
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve() }
-        audio.play().catch(resolve)
+        const source = ctx.createBufferSource()
+        ttsSourceRef.current = source
+        source.buffer = audioBuffer
+        source.connect(ctx.destination)
+        source.onended = () => resolve()
+        source.start(0)
       })
-    } catch { /* fall through to startListening */ }
+    } catch { /* fall through to listening */ }
     startListening()
   }
 
@@ -230,11 +265,19 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     return `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`
   }
 
+  const imgStyle: React.CSSProperties = {
+    objectFit: 'contain',
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    outline: 'none',
+  }
+
   /* ── END SCREEN ── */
   if (callState === 'ended') {
     return (
       <main style={{ minHeight: '100vh', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', border: 'none', boxShadow: 'none', outline: 'none' }} />
+        <img src="/robot-mascot.png" alt="" style={{ ...imgStyle, width: '200px', marginBottom: '2rem' }} />
         <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase', marginBottom: '0.5rem' }}>SITZUNG BEENDET</p>
         <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.5rem' }}>GUT GEMACHT</h2>
         <p style={{ fontFamily: narrow, fontSize: '0.8rem', color: '#999', marginBottom: '2rem' }}>{studentName}</p>
@@ -251,7 +294,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   if (callState === 'idle') {
     return (
       <main style={{ minHeight: '100vh', background: '#ffffff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
-        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', border: 'none', boxShadow: 'none', outline: 'none' }} />
+        <img src="/robot-mascot.png" alt="" style={{ ...imgStyle, width: '200px', marginBottom: '2rem' }} />
         <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.4rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.4rem' }}>
           {cls.robot_name}
         </h2>
@@ -289,11 +332,13 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   return (
     <main style={{ minHeight: '100vh', background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
       <style>{`
+        @keyframes blink { 50% { opacity: 0 } }
         .vs-header { border-bottom: 1px solid #000; padding: 0.65rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
         .vs-robot-label { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
         .vs-robot-level { display: inline; }
         .vs-right { display: flex; align-items: center; gap: 1rem; }
         .vs-state-label { display: flex; align-items: center; gap: 0.35rem; }
+        .vs-speaker-btn { display: none; background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0.1rem 0.2rem; outline: none; line-height: 1; }
         .vs-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
         .vs-robot-img { width: 200px; }
         @media (max-width: 480px) {
@@ -301,6 +346,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           .vs-robot-level { display: none; }
           .vs-right { gap: 0.6rem; }
           .vs-state-label { display: none; }
+          .vs-speaker-btn { display: inline-flex; align-items: center; }
           .vs-robot-img { width: 140px !important; }
           .vs-center { padding: 1.5rem 1rem; }
         }
@@ -309,7 +355,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       {/* Header */}
       <div className="vs-header">
         <div className="vs-robot-label">
-          <img src="/robot-mascot.png" alt="" style={{ width: '28px', objectFit: 'contain', flexShrink: 0, background: 'transparent', border: 'none', boxShadow: 'none', outline: 'none' }} />
+          <img src="/robot-mascot.png" alt="" style={{ ...imgStyle, width: '28px', flexShrink: 0 }} />
           <span style={{ fontFamily: narrow, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {cls.robot_name}
           </span>
@@ -329,9 +375,13 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
             <span style={{ width: '6px', height: '6px', display: 'inline-block', background: dotColor, animation: dotBlink ? 'blink 1s step-end infinite' : 'none' }} />
             {stateLabel}
           </span>
+          {/* Speaker button — mobile only, re-unlocks AudioContext after backgrounding */}
+          <button className="vs-speaker-btn" onClick={handleSpeakerTap} title="Audio aktivieren">
+            🔊
+          </button>
           <button
             onClick={endCall}
-            style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', background: '#c00', border: '1px solid #c00', color: '#fff', padding: '0.3rem 0.6rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ fontFamily: narrow, fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', background: '#c00', border: '1px solid #c00', color: '#fff', padding: '0.3rem 0.6rem', cursor: 'pointer', whiteSpace: 'nowrap', outline: 'none' }}
           >
             AUFLEGEN
           </button>
@@ -344,7 +394,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           src="/robot-mascot.png"
           alt=""
           className="vs-robot-img"
-          style={{ objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s', background: 'transparent', border: 'none', boxShadow: 'none', outline: 'none' }}
+          style={{ ...imgStyle, marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s' }}
         />
         {lastRobotText && (
           <p style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1rem', color: '#333', maxWidth: '32rem', lineHeight: 1.7, letterSpacing: '0.02em' }}>
