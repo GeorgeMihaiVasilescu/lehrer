@@ -34,6 +34,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   const stateRef = useRef<CallState>('idle')
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   const accuracyRef = useRef(0)
+  const errorsRef = useRef<{ said: string; correct: string }[]>([])
   const mistakesRef = useRef(0)
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -131,6 +132,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
       if (data.accuracy !== undefined) { accuracyRef.current = data.accuracy; setAccuracy(data.accuracy) }
       if (data.mistakes !== undefined) mistakesRef.current += data.mistakes
+      if (Array.isArray(data.errors) && data.errors.length > 0) errorsRef.current.push(...data.errors)
 
       historyRef.current = [...history, { role: 'assistant' as const, content: reply }]
       await speak(reply)
@@ -263,13 +265,25 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     teardown()
     const duration = Math.round((Date.now() - startTimeRef.current) / 1000)
     const supabase = createClient()
-    await supabase.from('conversations').insert({
+    const { data: convData } = await supabase.from('conversations').insert({
       class_id: cls.id,
       student_name: studentName,
       duration,
       accuracy: accuracyRef.current,
       mistakes: mistakesRef.current,
-    })
+    }).select('id').single()
+
+    if (convData?.id && errorsRef.current.length > 0) {
+      const agg = new Map<string, { said: string; correct_form: string; count: number }>()
+      for (const e of errorsRef.current) {
+        const key = `${e.said}|||${e.correct}`
+        if (agg.has(key)) agg.get(key)!.count++
+        else agg.set(key, { said: e.said, correct_form: e.correct, count: 1 })
+      }
+      await supabase.from('conversation_errors').insert(
+        Array.from(agg.values()).map(e => ({ conversation_id: convData.id, ...e }))
+      )
+    }
   }
 
   function fmt(s: number) {

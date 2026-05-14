@@ -35,10 +35,12 @@ Return a JSON object with these fields:
 {
   "reply": "your response in German (and minimal English if needed)",
   "accuracy": <integer 0-100 representing how accurate their German was>,
-  "mistakes": <integer count of grammar/vocabulary mistakes found>
+  "mistakes": <integer count of grammar/vocabulary mistakes found>,
+  "errors": [{"said": "<exact incorrect word or phrase the student used>", "correct": "<the correct German form>"}]
 }
 
-If this is a system/greeting message with no German to evaluate, set accuracy to 100 and mistakes to 0.`
+If there are no mistakes, set "errors" to [].
+If this is a system/greeting message with no German to evaluate, set accuracy to 100, mistakes to 0, and errors to [].`
 }
 
 export async function POST(req: NextRequest) {
@@ -58,12 +60,13 @@ export async function POST(req: NextRequest) {
   })
 
   const raw = completion.choices[0].message.content ?? '{}'
-  let parsed: { reply: string; accuracy: number; mistakes: number }
+  let parsed: { reply: string; accuracy: number; mistakes: number; errors: { said: string; correct: string }[] }
 
   try {
     parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed.errors)) parsed.errors = []
   } catch {
-    parsed = { reply: raw, accuracy: 100, mistakes: 0 }
+    parsed = { reply: raw, accuracy: 100, mistakes: 0, errors: [] }
   }
 
   return NextResponse.json(parsed)

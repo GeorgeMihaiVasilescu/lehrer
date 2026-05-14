@@ -37,10 +37,23 @@ create table if not exists conversations (
 
 create index if not exists conversations_class_id_idx on conversations(class_id);
 
+-- Per-session mistake details
+create table if not exists conversation_errors (
+  id              uuid primary key default uuid_generate_v4(),
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  said            text not null,
+  correct_form    text not null,
+  count           integer not null default 1,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists conv_errors_conversation_id_idx on conversation_errors(conversation_id);
+
 -- Row Level Security
 alter table professors enable row level security;
 alter table classes enable row level security;
 alter table conversations enable row level security;
+alter table conversation_errors enable row level security;
 
 -- Professors: only own row
 create policy "professors_own" on professors
@@ -62,6 +75,20 @@ create policy "conversations_professor_read" on conversations
     exists (
       select 1 from classes
       where classes.id = conversations.class_id
+        and classes.professor_id = auth.uid()
+    )
+  );
+
+-- Conversation errors: anyone can insert (student at session end); professor can read their classes' errors
+create policy "conv_errors_insert" on conversation_errors
+  for insert with check (true);
+
+create policy "conv_errors_professor_read" on conversation_errors
+  for select using (
+    exists (
+      select 1 from conversations
+      join classes on classes.id = conversations.class_id
+      where conversations.id = conversation_errors.conversation_id
         and classes.professor_id = auth.uid()
     )
   );

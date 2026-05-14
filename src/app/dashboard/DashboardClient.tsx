@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import CreateClassModal from '@/components/CreateClassModal'
 import { createClient } from '@/lib/supabase'
 import { formatDuration } from '@/lib/utils'
-import type { Professor, Class, Conversation } from '@/types'
+import type { Professor, Class, Conversation, ConversationError } from '@/types'
 
 interface ClassWithConversations extends Class {
   conversations: Conversation[]
@@ -29,6 +29,13 @@ const DASH_STYLES = `
   .db-code-box { border: 1px solid #000; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
   .db-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .db-nav { padding: 0.65rem 1rem; }
+  .db-row-expandable { cursor: pointer; }
+  .db-row-expandable:hover td { background: #f5f5f5 !important; }
+  .db-error-detail td { background: #fafafa !important; }
+  .db-error-table { width: 100%; border-collapse: collapse; font-family: 'Arial Narrow', Arial, sans-serif; }
+  .db-error-table th { font-size: 0.55rem; letter-spacing: 0.1em; font-weight: 400; color: #999; text-transform: uppercase; text-align: left; padding: 0.3rem 0.5rem; border-bottom: 1px solid #e0e0e0; }
+  .db-error-table td { font-size: 0.72rem; padding: 0.3rem 0.5rem; border-bottom: 1px solid #f0f0f0; }
+  .db-summary-card { border: 1px solid #e8e8e8; padding: 1rem 1.25rem; margin-bottom: 1rem; }
   @media (max-width: 700px) {
     .db-body { flex-direction: column; }
     .db-sidebar { width: 100% !important; border-right: none; border-bottom: 1px solid #000; max-height: 180px; overflow-y: auto; }
@@ -214,6 +221,23 @@ function ClassDetail({
   const [editLevel, setEditLevel] = useState('')
   const [editPersonality, setEditPersonality] = useState('')
   const [saving, setSaving] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [convErrors, setConvErrors] = useState<Record<string, ConversationError[]>>({})
+
+  useEffect(() => {
+    const ids = cls.conversations.map(c => c.id)
+    if (ids.length === 0) return
+    const supabase = createClient()
+    supabase.from('conversation_errors').select('*').in('conversation_id', ids).then(({ data }) => {
+      if (!data) return
+      const grouped: Record<string, ConversationError[]> = {}
+      for (const e of data) {
+        if (!grouped[e.conversation_id]) grouped[e.conversation_id] = []
+        grouped[e.conversation_id].push(e)
+      }
+      setConvErrors(grouped)
+    })
+  }, [cls.id])
 
   function copyCode() {
     navigator.clipboard.writeText(cls.code)
@@ -357,7 +381,7 @@ function ClassDetail({
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: narrow, minWidth: '480px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #000' }}>
-                {['Schüler', 'Genauigkeit', 'Dauer', 'Fehler', 'Datum'].map((h) => (
+                {['Schüler', 'Genauigkeit', 'Dauer', 'Fehler', 'Datum', ''].map((h) => (
                   <th key={h} style={{ textAlign: 'left', padding: '0.4rem 0.75rem', fontSize: '0.6rem', letterSpacing: '0.1em', fontWeight: 400, textTransform: 'uppercase', color: '#999' }}>{h}</th>
                 ))}
               </tr>
@@ -365,19 +389,113 @@ function ClassDetail({
             <tbody>
               {[...cls.conversations]
                 .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map((conv, i) => (
-                  <tr key={conv.id} style={{ borderBottom: '1px solid #eee', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#000', textTransform: 'uppercase' }}>{conv.student_name}</td>
-                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: conv.accuracy >= 80 ? '#2a7a2a' : conv.accuracy >= 60 ? '#7a6a00' : '#a00000' }}>{conv.accuracy}%</td>
-                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{formatDuration(conv.duration)}</td>
-                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{conv.mistakes}</td>
-                    <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#bbb' }}>{new Date(conv.created_at).toLocaleDateString('de-DE')}</td>
-                  </tr>
-                ))}
+                .map((conv, i) => {
+                  const isExpanded = expandedId === conv.id
+                  const errors = convErrors[conv.id] ?? []
+                  return (
+                    <>
+                      <tr
+                        key={conv.id}
+                        className="db-row-expandable"
+                        onClick={() => setExpandedId(isExpanded ? null : conv.id)}
+                        style={{ borderBottom: isExpanded ? 'none' : '1px solid #eee', background: i % 2 === 0 ? '#fff' : '#fafafa' }}
+                      >
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#000', textTransform: 'uppercase' }}>{conv.student_name}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: conv.accuracy >= 80 ? '#2a7a2a' : conv.accuracy >= 60 ? '#7a6a00' : '#a00000' }}>{conv.accuracy}%</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{formatDuration(conv.duration)}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#666' }}>{conv.mistakes}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#bbb' }}>{new Date(conv.created_at).toLocaleDateString('de-DE')}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', fontSize: '0.65rem', color: '#bbb', whiteSpace: 'nowrap' }}>{isExpanded ? '▲' : '▼'}</td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={conv.id + '-detail'} className="db-error-detail">
+                          <td colSpan={6} style={{ padding: '0.75rem 1rem 1rem', borderBottom: '1px solid #eee' }}>
+                            {errors.length === 0 ? (
+                              <p style={{ fontFamily: narrow, fontSize: '0.65rem', color: '#bbb', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                                Keine Fehler aufgezeichnet
+                              </p>
+                            ) : (
+                              <table className="db-error-table">
+                                <thead>
+                                  <tr>
+                                    <th>Gesagt</th>
+                                    <th>Korrekte Form</th>
+                                    <th style={{ textAlign: 'right' }}>Häufigkeit</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {[...errors].sort((a, b) => b.count - a.count).map(e => (
+                                    <tr key={e.id}>
+                                      <td style={{ color: '#a00000' }}>{e.said}</td>
+                                      <td style={{ color: '#2a7a2a' }}>{e.correct_form}</td>
+                                      <td style={{ textAlign: 'right', color: '#999' }}>×{e.count}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )
+                })}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Per-student error summary */}
+      {(() => {
+        const studentMap = new Map<string, ConversationError[]>()
+        for (const conv of cls.conversations) {
+          const errors = convErrors[conv.id] ?? []
+          if (!studentMap.has(conv.student_name)) studentMap.set(conv.student_name, [])
+          studentMap.get(conv.student_name)!.push(...errors)
+        }
+        const summaries = Array.from(studentMap.entries()).map(([name, errors]) => {
+          const agg = new Map<string, { said: string; correct: string; count: number }>()
+          for (const e of errors) {
+            const key = `${e.said}|||${e.correct_form}`
+            if (agg.has(key)) agg.get(key)!.count += e.count
+            else agg.set(key, { said: e.said, correct: e.correct_form, count: e.count })
+          }
+          return { name, top: Array.from(agg.values()).sort((a, b) => b.count - a.count).slice(0, 5) }
+        }).filter(s => s.top.length > 0)
+        if (summaries.length === 0) return null
+        return (
+          <div style={{ marginTop: '2.5rem' }}>
+            <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase', marginBottom: '1rem' }}>
+              FEHLER-ZUSAMMENFASSUNG PRO SCHÜLER
+            </p>
+            {summaries.map(s => (
+              <div key={s.name} className="db-summary-card">
+                <p style={{ fontFamily: narrow, fontSize: '0.7rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.75rem' }}>
+                  {s.name}
+                </p>
+                <table className="db-error-table">
+                  <thead>
+                    <tr>
+                      <th>Häufigster Fehler</th>
+                      <th>Korrekte Form</th>
+                      <th style={{ textAlign: 'right' }}>Gesamt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.top.map((e, i) => (
+                      <tr key={i}>
+                        <td style={{ color: '#a00000' }}>{e.said}</td>
+                        <td style={{ color: '#2a7a2a' }}>{e.correct}</td>
+                        <td style={{ textAlign: 'right', color: '#999' }}>×{e.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
     </div>
   )
 }

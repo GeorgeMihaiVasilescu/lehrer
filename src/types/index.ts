@@ -26,6 +26,15 @@ export interface Conversation {
   created_at: string
 }
 
+export interface ConversationError {
+  id: string
+  conversation_id: string
+  said: string
+  correct_form: string
+  count: number
+  created_at: string
+}
+
 export interface ClassWithStats extends Class {
   conversations: Conversation[]
   avg_accuracy: number
