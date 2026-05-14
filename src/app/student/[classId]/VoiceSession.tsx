@@ -31,10 +31,8 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  // Separate contexts: ttsCtx for playback (created on user gesture), audioCtx for mic analysis
-  const ttsCtxRef = useRef<AudioContext | null>(null)
-  const ttsSourceRef = useRef<AudioBufferSourceNode | null>(null)
-  const audioCtxRef = useRef<AudioContext | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)  // TTS playback
+  const audioCtxRef = useRef<AudioContext | null>(null)   // mic analysis only
   const analyserRef = useRef<AnalyserNode | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -51,58 +49,34 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
   function teardown() {
     timerRef.current && clearInterval(timerRef.current)
-    try { ttsSourceRef.current?.stop() } catch {}
+    audioRef.current?.pause()
     rafRef.current && cancelAnimationFrame(rafRef.current)
     silenceTimerRef.current && clearTimeout(silenceTimerRef.current)
     streamRef.current?.getTracks().forEach(t => t.stop())
     audioCtxRef.current?.close()
-    ttsCtxRef.current?.close()
   }
 
-  // Must be called directly from a user gesture to unlock iOS/Android audio
-  function unlockTtsContext() {
-    console.log('[audio] unlockTtsContext called')
-    const ctx = new AudioContext()
-    ttsCtxRef.current = ctx
-    console.log('[audio] AudioContext created, state:', ctx.state)
-    // Fire-and-forget resume — do NOT await before playing (kills iOS gesture window)
-    ctx.resume().then(() => console.log('[audio] ctx.resume() resolved, state:', ctx.state))
-    // Play silent buffer synchronously within gesture
-    const silent = ctx.createBuffer(1, 1, 22050)
-    const src = ctx.createBufferSource()
-    src.buffer = silent
-    src.connect(ctx.destination)
-    src.start(0)
-    console.log('[audio] silent buffer started')
+  // Pre-create and "touch" an Audio element during the user gesture — required by iOS
+  function initAudio() {
+    console.log('[audio] initAudio — creating HTMLAudioElement during gesture')
+    const audio = new Audio()
+    // Silent data-URI WAV: plays instantly, tells iOS this element is user-approved
+    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+    audio.play()
+      .then(() => console.log('[audio] silent unlock play() resolved'))
+      .catch(e => console.warn('[audio] silent unlock play() rejected (ok on some browsers):', e))
+    audioRef.current = audio
   }
 
-  // Speaker button: plays an audible 440 Hz beep to confirm AudioContext works
-  async function handleSpeakerTap() {
+  // Speaker button: re-touch the audio element so iOS re-approves it
+  function handleSpeakerTap() {
     console.log('[audio] speaker tapped')
-    let ctx = ttsCtxRef.current
-    if (!ctx) {
-      console.log('[audio] no ctx — creating new one in speaker tap')
-      ctx = new AudioContext()
-      ttsCtxRef.current = ctx
-    }
-    console.log('[audio] ctx state before resume:', ctx.state)
-    try { await ctx.resume() } catch (e) { console.error('[audio] resume error:', e) }
-    console.log('[audio] ctx state after resume:', ctx.state)
-    // Audible test beep — 440 Hz for 0.4s
-    try {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.frequency.value = 440
-      gain.gain.setValueAtTime(0.4, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
-      osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + 0.4)
-      console.log('[audio] test beep started')
-    } catch (e) {
-      console.error('[audio] beep error:', e)
-    }
+    const audio = audioRef.current ?? new Audio()
+    audioRef.current = audio
+    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+    audio.play()
+      .then(() => console.log('[audio] speaker tap play() resolved'))
+      .catch(e => console.error('[audio] speaker tap play() rejected:', e))
   }
 
   async function startCall() {
@@ -114,9 +88,8 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       return
     }
 
-    // Unlock audio context synchronously within the user gesture (no await — preserves gesture window)
-    unlockTtsContext()
-    console.log('[audio] after unlockTtsContext, ctx state:', ttsCtxRef.current?.state)
+    // Pre-create audio element during user gesture — required for iOS autoplay policy
+    initAudio()
 
     startTimeRef.current = Date.now()
     timerRef.current = setInterval(() => {
@@ -163,42 +136,29 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     if (stateRef.current === 'ended') return
     go('speaking')
     try {
-      console.log('[tts] fetching audio for:', text.slice(0, 40))
+      console.log('[tts] fetching for:', text.slice(0, 40))
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       })
-      console.log('[tts] fetch response status:', res.status, 'content-type:', res.headers.get('content-type'))
-      if (!res.ok) {
-        console.error('[tts] fetch failed:', res.status)
-        startListening()
-        return
-      }
-      const arrayBuffer = await res.arrayBuffer()
-      console.log('[tts] arrayBuffer byteLength:', arrayBuffer.byteLength)
-      const ctx = ttsCtxRef.current
-      if (!ctx) { console.error('[tts] no AudioContext'); startListening(); return }
-      console.log('[tts] ctx state before resume:', ctx.state)
-      if (ctx.state === 'suspended') await ctx.resume()
-      console.log('[tts] ctx state after resume:', ctx.state)
-      let audioBuffer: AudioBuffer
-      try {
-        audioBuffer = await ctx.decodeAudioData(arrayBuffer)
-        console.log('[tts] decoded audioBuffer duration:', audioBuffer.duration, 'channels:', audioBuffer.numberOfChannels)
-      } catch (e) {
-        console.error('[tts] decodeAudioData error:', e)
-        startListening()
-        return
-      }
+      console.log('[tts] status:', res.status, 'content-type:', res.headers.get('content-type'))
+      if (!res.ok) { console.error('[tts] bad status:', res.status); startListening(); return }
+
+      const blob = await res.blob()
+      console.log('[tts] blob size:', blob.size, 'type:', blob.type)
+      const url = URL.createObjectURL(blob)
+
+      const audio = audioRef.current ?? new Audio()
+      audioRef.current = audio
+      audio.src = url
+
       await new Promise<void>(resolve => {
-        const source = ctx.createBufferSource()
-        ttsSourceRef.current = source
-        source.buffer = audioBuffer
-        source.connect(ctx.destination)
-        source.onended = () => { console.log('[tts] playback ended'); resolve() }
-        source.start(0)
-        console.log('[tts] source.start(0) called')
+        audio.onended = () => { console.log('[tts] ended'); URL.revokeObjectURL(url); resolve() }
+        audio.onerror = (e) => { console.error('[tts] onerror:', e); URL.revokeObjectURL(url); resolve() }
+        audio.play()
+          .then(() => console.log('[tts] play() resolved'))
+          .catch(e => { console.error('[tts] play() rejected:', e); resolve() })
       })
     } catch (e) {
       console.error('[tts] unexpected error:', e)
