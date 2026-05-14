@@ -224,6 +224,7 @@ function ClassDetail({
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [convErrors, setConvErrors] = useState<Record<string, ConversationError[]>>({})
   const [lessonContext, setLessonContext] = useState(cls.lesson_context ?? '')
+  const [lessonExpanded, setLessonExpanded] = useState(false)
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'extracting' | 'saving' | 'done' | 'error'>('idle')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -426,9 +427,21 @@ function ClassDetail({
           AKTUELLE LEKTION
         </p>
         {lessonContext ? (
-          <p style={{ fontFamily: narrow, fontSize: '0.78rem', color: '#333', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '5rem', overflow: 'hidden', maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)' }}>
-            {lessonContext}
-          </p>
+          <div>
+            <p style={{ fontFamily: narrow, fontSize: '0.78rem', color: '#333', margin: '0 0 0.3rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+              {lessonExpanded || lessonContext.length <= 150
+                ? lessonContext
+                : lessonContext.slice(0, 150) + '...'}
+            </p>
+            {lessonContext.length > 150 && (
+              <button
+                onClick={() => setLessonExpanded(e => !e)}
+                style={{ fontFamily: narrow, fontSize: '0.6rem', color: '#999', background: 'none', border: 'none', padding: 0, cursor: 'pointer', letterSpacing: '0.06em' }}
+              >
+                {lessonExpanded ? 'Ascunde' : 'Vezi tot'}
+              </button>
+            )}
+          </div>
         ) : (
           <p style={{ fontFamily: narrow, fontSize: '0.72rem', color: '#bbb', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Keine Lektion hochgeladen
