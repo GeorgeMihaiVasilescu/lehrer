@@ -48,29 +48,29 @@ export default function ManifestoPage() {
         .lb {
           background: #fffef8;
           padding: 10px;
-          box-shadow: 0 0 30px 8px rgba(255,248,220,0.6);
+          box-shadow: 0 0 18px 5px rgba(255,248,220,0.72);
           cursor: pointer;
           transition: box-shadow 0.28s ease, transform 0.28s ease;
           position: relative;
         }
         .lb:hover {
-          box-shadow: 0 0 50px 14px rgba(255,248,220,0.9);
+          box-shadow: 0 0 32px 10px rgba(255,248,220,0.98);
           transform: scale(1.05);
           z-index: 5;
         }
       `}</style>
 
-      {/* Manifesto text */}
-      <div style={{ maxWidth: '520px', marginBottom: '80px' }}>
-        <p style={{
-          fontFamily: 'Georgia, "Times New Roman", serif',
-          fontSize: '0.85rem',
-          fontWeight: 400,
-          color: '#ffffff',
-          lineHeight: 1.95,
-          letterSpacing: '0.018em',
-          margin: 0,
-        }}>
+      {/* Manifesto text — centered, Permanent Marker, prominent */}
+      <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+        <p
+          className={marker.className}
+          style={{
+            fontSize: '1.35rem',
+            color: '#ffffff',
+            lineHeight: 2.1,
+            margin: 0,
+          }}
+        >
           Lehrerinnen und Lehrer sollen alles absorbieren.<br />
           Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.<br />
           Und trotzdem weiter unterrichten.<br />
@@ -78,11 +78,11 @@ export default function ManifestoPage() {
         </p>
       </div>
 
-      {/* Illuminated lightbox grid */}
+      {/* Illuminated lightbox grid — 48px gap so individual glows don't bleed into each other */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(6, 1fr)',
-        gap: '32px',
+        gap: '48px',
         marginBottom: '96px',
       }}>
         {files.map((f, i) => (
@@ -101,13 +101,13 @@ export default function ManifestoPage() {
         ))}
       </div>
 
-      {/* Handwritten bottom right */}
+      {/* Handwritten bottom right — smaller, less prominent */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <p
           className={marker.className}
           style={{
-            fontSize: '1.4rem',
-            color: '#ffffff',
+            fontSize: '0.9rem',
+            color: 'rgba(255,255,255,0.4)',
             transform: 'rotate(-2deg)',
             margin: 0,
           }}
