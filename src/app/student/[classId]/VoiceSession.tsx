@@ -233,8 +233,8 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   /* ── END SCREEN ── */
   if (callState === 'ended') {
     return (
-      <main style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', mixBlendMode: 'multiply' }} />
+      <main style={{ minHeight: '100vh', background: '#f5f0e8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', border: 'none' }} />
         <p style={{ fontFamily: narrow, fontSize: '0.6rem', letterSpacing: '0.15em', color: '#999', textTransform: 'uppercase', marginBottom: '0.5rem' }}>SITZUNG BEENDET</p>
         <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.5rem' }}>GUT GEMACHT</h2>
         <p style={{ fontFamily: narrow, fontSize: '0.8rem', color: '#999', marginBottom: '2rem' }}>{studentName}</p>
@@ -250,8 +250,8 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   /* ── IDLE SCREEN ── */
   if (callState === 'idle') {
     return (
-      <main style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
-        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', mixBlendMode: 'multiply' }} />
+      <main style={{ minHeight: '100vh', background: '#f5f0e8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+        <img src="/robot-mascot.png" alt="" style={{ width: '200px', objectFit: 'contain', marginBottom: '2rem', background: 'transparent', border: 'none' }} />
         <h2 style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1.4rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#000', margin: '0 0 0.4rem' }}>
           {cls.robot_name}
         </h2>
@@ -287,7 +287,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   const stateLabel = ({ thinking: 'VERARBEITUNG', speaking: 'SPRICHT', listening: 'HÖRT ZU' } as Record<string, string>)[callState] ?? ''
 
   return (
-    <main style={{ minHeight: '100vh', background: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <main style={{ minHeight: '100vh', background: '#f5f0e8', display: 'flex', flexDirection: 'column' }}>
       <style>{`
         .vs-header { border-bottom: 1px solid #000; padding: 0.65rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
         .vs-robot-label { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
@@ -309,7 +309,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
       {/* Header */}
       <div className="vs-header">
         <div className="vs-robot-label">
-          <img src="/robot-mascot.png" alt="" style={{ width: '28px', objectFit: 'contain', flexShrink: 0, background: 'transparent', mixBlendMode: 'multiply' }} />
+          <img src="/robot-mascot.png" alt="" style={{ width: '28px', objectFit: 'contain', flexShrink: 0, background: 'transparent', border: 'none' }} />
           <span style={{ fontFamily: narrow, fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {cls.robot_name}
           </span>
@@ -344,7 +344,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           src="/robot-mascot.png"
           alt=""
           className="vs-robot-img"
-          style={{ objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s', background: 'transparent', mixBlendMode: 'multiply' }}
+          style={{ objectFit: 'contain', marginBottom: '2rem', opacity: robotDim ? 0.35 : 1, transition: 'opacity 0.3s', background: 'transparent', border: 'none' }}
         />
         {lastRobotText && (
           <p style={{ fontFamily: narrow, fontWeight: 400, fontSize: '1rem', color: '#333', maxWidth: '32rem', lineHeight: 1.7, letterSpacing: '0.02em' }}>
