@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Permanent_Marker, Playfair_Display } from 'next/font/google'
+import { Permanent_Marker } from 'next/font/google'
 
 const marker = Permanent_Marker({ subsets: ['latin'], weight: '400' })
-const playfair = Playfair_Display({ subsets: ['latin'], weight: '400' })
 
 const files = [
   '3FC9735D-2021-4A0B-95AE-38B58A9DD230.png',
@@ -61,28 +60,22 @@ export default function ManifestoPage() {
         }
       `}</style>
 
-      {/* Manifesto text — left aligned, each line its own breath */}
-      <div style={{ marginBottom: '80px' }}>
-        {[
-          'Lehrerinnen und Lehrer sollen alles absorbieren.',
-          'Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.',
-          'Und trotzdem weiter unterrichten.',
-          'LEHRER wurde in dieser Realität gebaut.',
-        ].map((line, i, arr) => (
-          <p
-            key={i}
-            className={playfair.className}
-            style={{
-              fontSize: '1.35rem',
-              color: '#4a4a4a',
-              lineHeight: 1.3,
-              margin: i < arr.length - 1 ? '0 0 1.5rem' : '0',
-              letterSpacing: '0.01em',
-            }}
-          >
-            {line}
-          </p>
-        ))}
+      {/* Manifesto text */}
+      <div style={{ marginBottom: '80px', paddingLeft: '40px' }}>
+        <p
+          className={marker.className}
+          style={{
+            fontSize: '1.1rem',
+            color: '#888888',
+            lineHeight: 2,
+            margin: 0,
+          }}
+        >
+          Lehrerinnen und Lehrer sollen alles absorbieren.<br />
+          Gewalt. Stress. Sprachbarrieren. Überwachung. Verwaltungskollaps. Psychischer Druck.<br />
+          Und trotzdem weiter unterrichten.<br />
+          LEHRER wurde in dieser Realität gebaut.
+        </p>
       </div>
 
       {/* Illuminated lightbox grid — 48px gap so individual glows don't bleed into each other */}
