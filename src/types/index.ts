@@ -29,10 +29,9 @@ export interface Conversation {
 export interface ConversationError {
   id: string
   conversation_id: string
-  said: string
-  correct_form: string
-  count: number
-  created_at: string
+  word_incorrect: string
+  word_correct: string
+  timestamp: string
 }
 
 export interface ClassWithStats extends Class {

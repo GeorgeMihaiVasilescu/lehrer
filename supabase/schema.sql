@@ -37,14 +37,13 @@ create table if not exists conversations (
 
 create index if not exists conversations_class_id_idx on conversations(class_id);
 
--- Per-session mistake details
+-- Per-session mistake details (one row per error, saved immediately when detected)
 create table if not exists conversation_errors (
   id              uuid primary key default uuid_generate_v4(),
   conversation_id uuid not null references conversations(id) on delete cascade,
-  said            text not null,
-  correct_form    text not null,
-  count           integer not null default 1,
-  created_at      timestamptz not null default now()
+  word_incorrect  text not null,
+  word_correct    text not null,
+  timestamp       timestamptz not null default now()
 );
 
 create index if not exists conv_errors_conversation_id_idx on conversation_errors(conversation_id);
@@ -69,6 +68,9 @@ create policy "classes_public_read" on classes
 -- Conversations: professor of that class can read; anyone can insert
 create policy "conversations_insert" on conversations
   for insert with check (true);
+
+create policy "conversations_update" on conversations
+  for update using (true) with check (true);
 
 create policy "conversations_professor_read" on conversations
   for select using (

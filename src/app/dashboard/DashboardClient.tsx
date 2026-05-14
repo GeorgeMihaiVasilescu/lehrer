@@ -420,15 +420,17 @@ function ClassDetail({
                                   <tr>
                                     <th>Gesagt</th>
                                     <th>Korrekte Form</th>
-                                    <th style={{ textAlign: 'right' }}>Häufigkeit</th>
+                                    <th style={{ textAlign: 'right' }}>Zeitstempel</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {[...errors].sort((a, b) => b.count - a.count).map(e => (
+                                  {[...errors].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).map(e => (
                                     <tr key={e.id}>
-                                      <td style={{ color: '#a00000' }}>{e.said}</td>
-                                      <td style={{ color: '#2a7a2a' }}>{e.correct_form}</td>
-                                      <td style={{ textAlign: 'right', color: '#999' }}>×{e.count}</td>
+                                      <td style={{ color: '#a00000' }}>{e.word_incorrect}</td>
+                                      <td style={{ color: '#2a7a2a' }}>{e.word_correct}</td>
+                                      <td style={{ textAlign: 'right', color: '#999', fontVariantNumeric: 'tabular-nums' }}>
+                                        {new Date(e.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -456,9 +458,9 @@ function ClassDetail({
         const summaries = Array.from(studentMap.entries()).map(([name, errors]) => {
           const agg = new Map<string, { said: string; correct: string; count: number }>()
           for (const e of errors) {
-            const key = `${e.said}|||${e.correct_form}`
-            if (agg.has(key)) agg.get(key)!.count += e.count
-            else agg.set(key, { said: e.said, correct: e.correct_form, count: e.count })
+            const key = `${e.word_incorrect}|||${e.word_correct}`
+            if (agg.has(key)) agg.get(key)!.count++
+            else agg.set(key, { said: e.word_incorrect, correct: e.word_correct, count: 1 })
           }
           return { name, top: Array.from(agg.values()).sort((a, b) => b.count - a.count).slice(0, 5) }
         }).filter(s => s.top.length > 0)

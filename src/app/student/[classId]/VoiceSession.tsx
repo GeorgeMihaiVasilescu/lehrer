@@ -34,7 +34,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   const stateRef = useRef<CallState>('idle')
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   const accuracyRef = useRef(0)
-  const errorsRef = useRef<{ said: string; correct: string }[]>([])
+  const convIdRef = useRef<string | null>(null)
   const mistakesRef = useRef(0)
   const startTimeRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -99,6 +99,15 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     // Pre-create audio element during user gesture — required for iOS autoplay policy
     initAudio()
 
+    // Create the conversation record now so we have an ID for real-time error saves
+    const supabase = createClient()
+    const { data: convRow } = await supabase
+      .from('conversations')
+      .insert({ class_id: cls.id, student_name: studentName, duration: 0, accuracy: 0, mistakes: 0 })
+      .select('id')
+      .single()
+    convIdRef.current = convRow?.id ?? null
+
     startTimeRef.current = Date.now()
     timerRef.current = setInterval(() => {
       const rem = TOTAL_SECONDS - Math.floor((Date.now() - startTimeRef.current) / 1000)
@@ -132,7 +141,16 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
       if (data.accuracy !== undefined) { accuracyRef.current = data.accuracy; setAccuracy(data.accuracy) }
       if (data.mistakes !== undefined) mistakesRef.current += data.mistakes
-      if (Array.isArray(data.errors) && data.errors.length > 0) errorsRef.current.push(...data.errors)
+      if (convIdRef.current && Array.isArray(data.errors) && data.errors.length > 0) {
+        const supabase = createClient()
+        void supabase.from('conversation_errors').insert(
+          data.errors.map((e: { said: string; correct: string }) => ({
+            conversation_id: convIdRef.current,
+            word_incorrect: e.said,
+            word_correct: e.correct,
+          }))
+        )
+      }
 
       historyRef.current = [...history, { role: 'assistant' as const, content: reply }]
       await speak(reply)
@@ -263,27 +281,14 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     if (stateRef.current === 'ended') return
     go('ended')
     teardown()
+    if (!convIdRef.current) return
     const duration = Math.round((Date.now() - startTimeRef.current) / 1000)
     const supabase = createClient()
-    const { data: convData } = await supabase.from('conversations').insert({
-      class_id: cls.id,
-      student_name: studentName,
+    await supabase.from('conversations').update({
       duration,
       accuracy: accuracyRef.current,
       mistakes: mistakesRef.current,
-    }).select('id').single()
-
-    if (convData?.id && errorsRef.current.length > 0) {
-      const agg = new Map<string, { said: string; correct_form: string; count: number }>()
-      for (const e of errorsRef.current) {
-        const key = `${e.said}|||${e.correct}`
-        if (agg.has(key)) agg.get(key)!.count++
-        else agg.set(key, { said: e.said, correct_form: e.correct, count: 1 })
-      }
-      await supabase.from('conversation_errors').insert(
-        Array.from(agg.values()).map(e => ({ conversation_id: convData.id, ...e }))
-      )
-    }
+    }).eq('id', convIdRef.current)
   }
 
   function fmt(s: number) {
