@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         },
         {
           type: 'text',
-          text: 'Extract all text from this image exactly as written. Return only the raw text content, preserving line breaks. No commentary.',
+          text: 'This is a page from a German language textbook. Extract ALL text, vocabulary, character names, dialogues, and describe what the situations/images show. Be thorough and detailed.',
         },
       ],
     }],
