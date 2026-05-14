@@ -100,13 +100,16 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     initAudio()
 
     // Create the conversation record now so we have an ID for real-time error saves
+    dbg('[db] inserting conversation row...')
     const supabase = createClient()
-    const { data: convRow } = await supabase
+    const { data: convRow, error: convErr } = await supabase
       .from('conversations')
       .insert({ class_id: cls.id, student_name: studentName, duration: 0, accuracy: 0, mistakes: 0 })
       .select('id')
       .single()
+    if (convErr) dbg(`[db] conversation insert ERROR: ${convErr.message} code=${convErr.code}`)
     convIdRef.current = convRow?.id ?? null
+    dbg(`[db] conversation_id=${convIdRef.current ?? 'NULL'}`)
 
     startTimeRef.current = Date.now()
     timerRef.current = setInterval(() => {
@@ -141,15 +144,20 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
       if (data.accuracy !== undefined) { accuracyRef.current = data.accuracy; setAccuracy(data.accuracy) }
       if (data.mistakes !== undefined) mistakesRef.current += data.mistakes
+      dbg(`[db] errors from GPT: ${JSON.stringify(data.errors)} convId=${convIdRef.current ?? 'NULL'}`)
+      if (!convIdRef.current) dbg('[db] SKIP error save — no conversation_id yet')
+      if (!Array.isArray(data.errors) || data.errors.length === 0) dbg('[db] SKIP error save — errors array empty')
       if (convIdRef.current && Array.isArray(data.errors) && data.errors.length > 0) {
+        const rows = data.errors.map((e: { said: string; correct: string }) => ({
+          conversation_id: convIdRef.current,
+          word_incorrect: e.said,
+          word_correct: e.correct,
+        }))
+        dbg(`[db] inserting ${rows.length} error row(s)...`)
         const supabase = createClient()
-        void supabase.from('conversation_errors').insert(
-          data.errors.map((e: { said: string; correct: string }) => ({
-            conversation_id: convIdRef.current,
-            word_incorrect: e.said,
-            word_correct: e.correct,
-          }))
-        )
+        const { error: errInsertErr } = await supabase.from('conversation_errors').insert(rows)
+        if (errInsertErr) dbg(`[db] error insert FAILED: ${errInsertErr.message} code=${errInsertErr.code}`)
+        else dbg(`[db] error insert OK (${rows.length} rows)`)
       }
 
       historyRef.current = [...history, { role: 'assistant' as const, content: reply }]
