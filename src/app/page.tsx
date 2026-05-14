@@ -110,11 +110,11 @@ export default function LandingPage() {
       </section>
 
       {/* Klaus mascot section */}
-      <section style={{ background: '#fff', borderTop: '1px solid #000', padding: '3rem 2.5rem', textAlign: 'center' }}>
+      <section style={{ background: '#fff', borderTop: '1px solid #000', padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
         <img
           src="/robot-mascot.png"
           alt="Klaus"
-          style={{ width: '200px', maxWidth: '200px', objectFit: 'contain', marginBottom: '1.25rem' }}
+          style={{ width: '200px', maxWidth: '200px', objectFit: 'contain', marginBottom: '1.25rem', mixBlendMode: 'multiply' }}
         />
         <p style={{
           fontFamily: narrow,
