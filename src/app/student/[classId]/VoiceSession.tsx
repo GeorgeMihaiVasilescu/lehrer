@@ -23,6 +23,13 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS)
   const [lastRobotText, setLastRobotText] = useState('')
   const [accuracy, setAccuracy] = useState(0)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+
+  function dbg(msg: string) {
+    console.log(msg)
+    const t = new Date().toLocaleTimeString('de', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    setDebugLogs(prev => [...prev.slice(-19), `${t} ${msg}`])
+  }
 
   const stateRef = useRef<CallState>('idle')
   const historyRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
@@ -58,25 +65,25 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
   // Pre-create and "touch" an Audio element during the user gesture — required by iOS
   function initAudio() {
-    console.log('[audio] initAudio — creating HTMLAudioElement during gesture')
+    dbg('[audio] initAudio called')
     const audio = new Audio()
-    // Silent data-URI WAV: plays instantly, tells iOS this element is user-approved
     audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
     audio.play()
-      .then(() => console.log('[audio] silent unlock play() resolved'))
-      .catch(e => console.warn('[audio] silent unlock play() rejected (ok on some browsers):', e))
+      .then(() => dbg('[audio] unlock play() OK'))
+      .catch(e => dbg(`[audio] unlock play() FAIL: ${e}`))
     audioRef.current = audio
+    dbg('[audio] element created')
   }
 
   // Speaker button: re-touch the audio element so iOS re-approves it
   function handleSpeakerTap() {
-    console.log('[audio] speaker tapped')
+    dbg('[audio] speaker tapped')
     const audio = audioRef.current ?? new Audio()
     audioRef.current = audio
     audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
     audio.play()
-      .then(() => console.log('[audio] speaker tap play() resolved'))
-      .catch(e => console.error('[audio] speaker tap play() rejected:', e))
+      .then(() => dbg('[audio] speaker play() OK'))
+      .catch(e => dbg(`[audio] speaker play() FAIL: ${e}`))
   }
 
   async function startCall() {
@@ -136,32 +143,34 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     if (stateRef.current === 'ended') return
     go('speaking')
     try {
-      console.log('[tts] fetching for:', text.slice(0, 40))
+      dbg(`[tts] fetch: "${text.slice(0, 30)}..."`)
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       })
-      console.log('[tts] status:', res.status, 'content-type:', res.headers.get('content-type'))
-      if (!res.ok) { console.error('[tts] bad status:', res.status); startListening(); return }
+      dbg(`[tts] status: ${res.status} ${res.headers.get('content-type')}`)
+      if (!res.ok) { dbg(`[tts] ERROR status ${res.status}`); startListening(); return }
 
       const blob = await res.blob()
-      console.log('[tts] blob size:', blob.size, 'type:', blob.type)
-      const url = URL.createObjectURL(blob)
+      dbg(`[tts] blob: ${blob.size}b type=${blob.type}`)
+      if (blob.size === 0) { dbg('[tts] ERROR empty blob'); startListening(); return }
 
+      const url = URL.createObjectURL(blob)
       const audio = audioRef.current ?? new Audio()
       audioRef.current = audio
       audio.src = url
+      dbg('[tts] src set, calling play()...')
 
       await new Promise<void>(resolve => {
-        audio.onended = () => { console.log('[tts] ended'); URL.revokeObjectURL(url); resolve() }
-        audio.onerror = (e) => { console.error('[tts] onerror:', e); URL.revokeObjectURL(url); resolve() }
+        audio.onended = () => { dbg('[tts] onended ✓'); URL.revokeObjectURL(url); resolve() }
+        audio.onerror = (e) => { dbg(`[tts] onerror: ${JSON.stringify(e)}`); URL.revokeObjectURL(url); resolve() }
         audio.play()
-          .then(() => console.log('[tts] play() resolved'))
-          .catch(e => { console.error('[tts] play() rejected:', e); resolve() })
+          .then(() => dbg('[tts] play() resolved ✓'))
+          .catch(e => { dbg(`[tts] play() REJECTED: ${e}`); resolve() })
       })
     } catch (e) {
-      console.error('[tts] unexpected error:', e)
+      dbg(`[tts] EXCEPTION: ${e}`)
     }
     startListening()
   }
@@ -276,6 +285,22 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     outline: 'none',
   }
 
+  const debugPanel = (
+    <div className="vs-debug-panel">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{ color: '#0f0', fontWeight: 'bold', fontSize: '10px' }}>DEBUG</span>
+        <button onClick={() => setDebugLogs([])} style={{ background: 'none', border: '1px solid #555', color: '#aaa', fontSize: '9px', padding: '1px 5px', cursor: 'pointer' }}>clear</button>
+      </div>
+      {debugLogs.length === 0
+        ? <div style={{ color: '#555' }}>no logs yet</div>
+        : [...debugLogs].reverse().map((l, i) => (
+            <div key={i} style={{ color: l.includes('ERROR') || l.includes('FAIL') || l.includes('REJECTED') || l.includes('EXCEPTION') ? '#f66' : l.includes('✓') ? '#0f0' : '#ccc', borderBottom: '1px solid #111', paddingBottom: '2px', marginBottom: '2px' }}>
+              {l}
+            </div>
+          ))}
+    </div>
+  )
+
   /* ── END SCREEN ── */
   if (callState === 'ended') {
     return (
@@ -289,6 +314,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
         <Link href="/student" style={{ fontFamily: narrow, fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', background: '#000', color: '#fff', border: '1px solid #000', padding: '0.75rem 2rem', textDecoration: 'none' }}>
           ZURÜCK
         </Link>
+        {debugPanel}
       </main>
     )
   }
@@ -322,6 +348,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
         >
           ANRUFEN
         </button>
+        {debugPanel}
       </main>
     )
   }
@@ -353,6 +380,8 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           .vs-robot-img { width: 140px !important; }
           .vs-center { padding: 1.5rem 1rem; }
         }
+        .vs-debug-panel { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); color: #ccc; font-family: monospace; font-size: 10px; padding: 8px; max-height: 200px; overflow-y: auto; z-index: 9999; }
+        @media (max-width: 768px) { .vs-debug-panel { display: block; } }
       `}</style>
 
       {/* Header */}
@@ -411,6 +440,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
         )}
       </div>
 
+      {debugPanel}
     </main>
   )
 }
