@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Permanent_Marker } from 'next/font/google'
+import { Permanent_Marker, Caveat } from 'next/font/google'
 
 const marker = Permanent_Marker({ subsets: ['latin'], weight: '400' })
+const caveat = Caveat({ subsets: ['latin'], weight: '400' })
 
 const files = [
   '3FC9735D-2021-4A0B-95AE-38B58A9DD230.png',
@@ -63,10 +64,10 @@ export default function ManifestoPage() {
       {/* Manifesto text */}
       <div style={{ marginBottom: '80px', paddingLeft: '40px' }}>
         <p
-          className={marker.className}
+          className={caveat.className}
           style={{
-            fontSize: '1.1rem',
-            color: '#888888',
+            fontSize: '1.4rem',
+            color: '#aaaaaa',
             lineHeight: 2,
             margin: 0,
           }}
