@@ -15,7 +15,7 @@ type CallState = 'idle' | 'thinking' | 'speaking' | 'listening' | 'ended'
 const narrow = "'Arial Narrow', Arial, sans-serif"
 const TOTAL_SECONDS = 20 * 60
 const SILENCE_THRESHOLD = 0.008
-const SILENCE_MS = 1500
+const SILENCE_MS = 800
 const MIN_RECORD_MS = 500
 
 export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
@@ -88,13 +88,21 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
   }
 
   async function startCall() {
+    let stream: MediaStream
     try {
-      const perm = await navigator.mediaDevices.getUserMedia({ audio: true })
-      perm.getTracks().forEach(t => t.stop())
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
     } catch {
       alert('Mikrofon-Berechtigung erforderlich.')
       return
     }
+    // Keep stream alive for the whole session — reused by every startListening() call
+    streamRef.current = stream
+    const ctx = new AudioContext()
+    audioCtxRef.current = ctx
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 2048
+    analyserRef.current = analyser
+    ctx.createMediaStreamSource(stream).connect(analyser)
 
     // Pre-create audio element during user gesture — required for iOS autoplay policy
     initAudio()
@@ -215,45 +223,37 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     silenceTimerRef.current = null
     rafRef.current && cancelAnimationFrame(rafRef.current)
 
-    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(stream => {
-      if (stateRef.current !== 'listening') { stream.getTracks().forEach(t => t.stop()); return }
-      streamRef.current = stream
+    const stream = streamRef.current
+    const analyser = analyserRef.current
+    if (!stream || !analyser) { go('idle'); return }
 
-      const ctx = new AudioContext()
-      audioCtxRef.current = ctx
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 2048
-      analyserRef.current = analyser
-      ctx.createMediaStreamSource(stream).connect(analyser)
+    const recorder = new MediaRecorder(stream)
+    recorderRef.current = recorder
+    recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+    recorder.start(100)
+    recordStartRef.current = Date.now()
 
-      const recorder = new MediaRecorder(stream)
-      recorderRef.current = recorder
-      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-      recorder.start(100)
-      recordStartRef.current = Date.now()
+    function tick() {
+      if (stateRef.current !== 'listening') return
+      const buf = new Float32Array(analyser.fftSize)
+      analyser.getFloatTimeDomainData(buf)
+      const rms = Math.sqrt(buf.reduce((s, x) => s + x * x, 0) / buf.length)
 
-      function tick() {
-        if (stateRef.current !== 'listening') return
-        const buf = new Float32Array(analyser.fftSize)
-        analyser.getFloatTimeDomainData(buf)
-        const rms = Math.sqrt(buf.reduce((s, x) => s + x * x, 0) / buf.length)
-
-        if (Date.now() - recordStartRef.current > MIN_RECORD_MS) {
-          if (rms < SILENCE_THRESHOLD) {
-            if (!silenceTimerRef.current) {
-              silenceTimerRef.current = setTimeout(() => {
-                silenceTimerRef.current = null
-                stopAndProcess()
-              }, SILENCE_MS)
-            }
-          } else {
-            if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+      if (Date.now() - recordStartRef.current > MIN_RECORD_MS) {
+        if (rms < SILENCE_THRESHOLD) {
+          if (!silenceTimerRef.current) {
+            silenceTimerRef.current = setTimeout(() => {
+              silenceTimerRef.current = null
+              stopAndProcess()
+            }, SILENCE_MS)
           }
+        } else {
+          if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
         }
-        rafRef.current = requestAnimationFrame(tick)
       }
       rafRef.current = requestAnimationFrame(tick)
-    }).catch(() => { const s: CallState = stateRef.current; if (s !== 'ended') go('idle') })
+    }
+    rafRef.current = requestAnimationFrame(tick)
   }
 
   function stopAndProcess() {
@@ -264,8 +264,6 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     const recorder = recorderRef.current
     if (!recorder || recorder.state === 'inactive') return
     recorder.addEventListener('stop', async () => {
-      streamRef.current?.getTracks().forEach(t => t.stop())
-      audioCtxRef.current?.close()
       const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
       await transcribeAndRespond(blob)
     }, { once: true })
