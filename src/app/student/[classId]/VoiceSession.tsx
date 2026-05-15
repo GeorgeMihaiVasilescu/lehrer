@@ -64,27 +64,45 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     audioCtxRef.current?.close()
   }
 
-  // Pre-create and "touch" an Audio element during the user gesture — required by iOS
-  function initAudio() {
-    dbg('[audio] initAudio called')
-    const audio = new Audio()
-    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+
+  // Must be called synchronously inside a user gesture — before any await.
+  // Creates/resumes AudioContext and plays a silent WAV to unlock iOS autoplay.
+  function unlockAudio() {
+    dbg('[audio] unlockAudio called')
+
+    // HTMLAudioElement unlock — lets us call .play() on TTS audio later
+    const audio = audioRef.current ?? new Audio()
+    audio.src = SILENT_WAV
     audio.play()
-      .then(() => dbg('[audio] unlock play() OK'))
-      .catch(e => dbg(`[audio] unlock play() FAIL: ${e}`))
+      .then(() => dbg('[audio] silent play() OK'))
+      .catch(e => dbg(`[audio] silent play() FAIL: ${e}`))
     audioRef.current = audio
-    dbg('[audio] element created')
+
+    // AudioContext unlock — iOS creates it suspended; resume() in gesture fixes that
+    const ctx = audioCtxRef.current && audioCtxRef.current.state !== 'closed'
+      ? audioCtxRef.current
+      : new AudioContext()
+    ctx.resume()
+      .then(() => dbg(`[audio] AudioContext state=${ctx.state}`))
+      .catch(e => dbg(`[audio] ctx.resume() FAIL: ${e}`))
+    audioCtxRef.current = ctx
+
+    dbg('[audio] unlockAudio done (sync)')
   }
 
-  // Speaker button: re-touch the audio element so iOS re-approves it
+  // Speaker button: re-unlock after backgrounding the app
   function handleSpeakerTap() {
     dbg('[audio] speaker tapped')
     const audio = audioRef.current ?? new Audio()
     audioRef.current = audio
-    audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='
+    audio.src = SILENT_WAV
     audio.play()
       .then(() => dbg('[audio] speaker play() OK'))
       .catch(e => dbg(`[audio] speaker play() FAIL: ${e}`))
+    audioCtxRef.current?.resume()
+      .then(() => dbg('[audio] speaker ctx.resume() OK'))
+      .catch(e => dbg(`[audio] speaker ctx.resume() FAIL: ${e}`))
   }
 
   async function startCall() {
@@ -97,15 +115,13 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
     }
     // Keep stream alive for the whole session — reused by every startListening() call
     streamRef.current = stream
-    const ctx = new AudioContext()
+    // Reuse the AudioContext already created+resumed in unlockAudio() (user gesture)
+    const ctx = audioCtxRef.current ?? new AudioContext()
     audioCtxRef.current = ctx
     const analyser = ctx.createAnalyser()
     analyser.fftSize = 2048
     analyserRef.current = analyser
     ctx.createMediaStreamSource(stream).connect(analyser)
-
-    // Pre-create audio element during user gesture — required for iOS autoplay policy
-    initAudio()
 
     // Generate UUID client-side so we never need a SELECT-after-insert
     // (the SELECT would hit the professor-only read policy and return null for anon users)
@@ -362,7 +378,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
           20 MINUTEN — DEUTSCH
         </p>
         <button
-          onClick={startCall}
+          onClick={() => { unlockAudio(); void startCall() }}
           style={{
             fontFamily: narrow,
             fontSize: '1.1rem',
