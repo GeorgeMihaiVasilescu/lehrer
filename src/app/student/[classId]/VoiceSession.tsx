@@ -235,6 +235,7 @@ export default function VoiceSession({ cls, studentName }: VoiceSessionProps) {
 
     function tick() {
       if (stateRef.current !== 'listening') return
+      if (!analyser) return
       const buf = new Float32Array(analyser.fftSize)
       analyser.getFloatTimeDomainData(buf)
       const rms = Math.sqrt(buf.reduce((s, x) => s + x * x, 0) / buf.length)
